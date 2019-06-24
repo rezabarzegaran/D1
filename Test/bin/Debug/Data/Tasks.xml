@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<graphml >
+  <Graph id="ControlTask" edgedefault="directed">
+
+
+
+    <Node Id="101" Name="A1" BCET="1000" WCET="1000" Deadline="6000"  CpuId="0" CoreId="0">
+      <Period Value="6000"/>
+    </Node>
+    <Node Id="102" Name="A2" BCET="500" WCET="500" Deadline="10000"  CpuId="0" CoreId="0">
+      <Period Value="10000"/>
+    </Node>
+
+    <Node Id="1" Name="H1" BCET="1000" WCET="1000" Deadline="8500" EarliestActivation="0" CpuId="0" CoreId="0">
+      <Period Value="12000"/>
+    </Node>
+
+
+    <Node Id="104" Name="A4" BCET="500" WCET="500" Deadline="12000"  CpuId="0" CoreId="0">
+      <Period Value="12000"/>
+    </Node>
+
+
+    -
+    <Application Name="Chain1" Inorder="false" CA ="false">
+      <Runnable Name="A1"/>
+      <Runnable Name="A2"/>
+      <Runnable Name="A4"/>
+    </Application>
+
+    <Chain Name="Chain1" Priority="1.0" Budget="10000">
+      <Runnable Name="A1"/>
+      <Runnable Name="A2"/>
+    </Chain>
+
+
+
+
+
+    <Node Id="201" Name="B1" BCET="750" WCET="750" Deadline="10000"  CpuId="0" CoreId="0">
+      <Period Value="10000"/>
+    </Node>
+
+
+    <Node Id="2" Name="H2" BCET="2500" WCET="2500" Deadline="11000" EarliestActivation="1000" CpuId="0" CoreId="0">
+      <Period Value="12000"/>
+    </Node>
+
+
+
+
+    <Node Id="202" Name="B2" BCET="750" WCET="750" Deadline="10000" CpuId="0" CoreId="0">
+      <Period Value="10000"/>
+
+    </Node>
+    <Node Id="203" Name="B3" BCET="750" WCET="1000" Deadline="12000" CpuId="0" CoreId="0">
+      <Period Value="12000"/>
+    </Node>
+
+
+    <Application Name="AddChain1" Inorder="false" CA ="false">
+      <Runnable Name="B1"/>
+      <Runnable Name="B2"/>
+      <Runnable Name="B3"/>
+    </Application>
+    -
+    <Chain Name="AddChain1" Priority="1.0" Budget="14000">
+      <Runnable Name="B1"/>
+      <Runnable Name="B2"/>
+      <Runnable Name="B3"/>
+    </Chain>
+
+
+
+
+    <Node Id="3" Name="H3" BCET="1000" WCET="1000" Deadline="12000" EarliestActivation="3500"  CpuId="0" CoreId="0">
+      <Period Value="12000"/>
+    </Node>
+
+    <Chain Name="DCMOTOR1" Priority="1.0" Budget="12000">
+      <Runnable Name="H1"/>
+      <Runnable Name="H2"/>
+      <Runnable Name="H3"/>
+    </Chain>
+
+    <Application Name="DCMOTOR1" Inorder="true" CA ="true">
+      <Runnable Name="H1"/>
+      <Runnable Name="H2"/>
+      <Runnable Name="H3"/>
+    </Application>
+    -
+
+
+
+
+    
+  </Graph>
+
+</graphml>
