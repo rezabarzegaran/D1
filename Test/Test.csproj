@@ -56,9 +56,6 @@
     <Content Include="Data\Tasks.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="Data\matlab.mat">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

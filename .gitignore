@@ -1,2 +1,2 @@
-Test\bin\*
-Test/bin/*
+**/bin/*
+**/obj/*
