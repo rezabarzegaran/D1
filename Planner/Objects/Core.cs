@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Planner.Objects
 {
@@ -25,9 +26,10 @@ namespace Planner.Objects
             Hyperperiod = 1;
             MacroTick = macroTick;
             Event = new TaskEvent(this);
+            Separation = new Dictionary<int, int>();
             _CF = cf;
         }
-        public Core(int cpuId, int coreId, int macroTick, double cf, List<Job> tasks)
+        public Core(int cpuId, int coreId, int macroTick, double cf, List<Job> tasks, Dictionary<int, int> separation)
         {
             _cpuId = cpuId;
             CPUID = cpuId;
@@ -38,6 +40,7 @@ namespace Planner.Objects
             Hyperperiod = 1;
             MacroTick = macroTick;
             Event = new TaskEvent(this);
+            Separation = new Dictionary<int, int>();
             _CF = cf;
 
 
@@ -48,6 +51,12 @@ namespace Planner.Objects
                 task.SetEnvironment(Id, _CF);
                 Utilization += task.Cost;
                 Hyperperiod = (int)Extensions.LeastCommonMultiple(Hyperperiod, task.Period);
+            }
+            Separation.Clear();
+            foreach (var item in separation)
+            {
+                
+                Separation.Add(item.Key, item.Value);
             }
 
 
@@ -66,6 +75,7 @@ namespace Planner.Objects
         public int Hyperperiod { get; private set; }
         public int MacroTick { get; private set; }
         public TaskEvent Event { get; private set; }
+        public Dictionary<int, int> Separation;
         public void QueueJob(Job job)
         {
             Tasks.Add(job);
@@ -81,6 +91,8 @@ namespace Planner.Objects
                 j.Reset();
                 WaitingList.Enqueue(j);
             }
+
+            CalcSeparation();
         }
 
 
@@ -92,53 +104,86 @@ namespace Planner.Objects
         /// <param name="debug">Indicates if the ExecutionTrace should be built.</param>
         public void TriggerEvent(bool debug)
         {
-            //Console.WriteLine($"**** Cycle: {Event.Cycle} ****");
-            bool hasExecution = false; // TODO: remove this. replace check by Current!=null
-            ReleaseTasks(Event.Cycle); // TODO: remove this, and activate lines 99 through 102. when unittesting is done.
-            if (Current != null)
+            int next = Int32.MaxValue;
+            ReleaseTasks(Event.Cycle);
+
+            if (Current == null)
+            {
+                if (ReadyList.Count() > 0)
+                {
+                    if ((Event.Cycle % Hyperperiod) == 0)
+                    {
+                        int offset = Separation[ReadyList.Peek().Cil];
+                        next = Event.Cycle + offset;
+                    }
+                    else
+                    {
+                        Current = ReadyList.Dequeue();
+                        next = Current.NextEvent(Event.Cycle, MacroTick);
+                    }
+                }
+                else if (WaitingList.Count() > 0)
+                {
+                    next = WaitingList.Peek().Release;
+                }
+            }
+            else
             {
                 bool finalExecutionSlice = Current.FinalEvent(MacroTick);
                 Current.Execute(Event.Cycle, debug, MacroTick);
-                // If this is the last execution slice for this task
-                // then insert it into the waiting list.
-                if (finalExecutionSlice)
+                next = Current.NextEvent(Event.Cycle, MacroTick);
+                int offset = 0;
+
+                if (ReadyList.Count() > 0)
                 {
-                    WaitingList.Enqueue(Current);
-                    Current = null;
+                    Job possibleJob = ReadyList.Peek();
+                    if (possibleJob.Cil != Current.Cil)
+                    {
+                        offset = Separation[possibleJob.Cil];
+                    }
+                    if (finalExecutionSlice)
+                    {
+                        WaitingList.Enqueue(Current);
+                        Current = null;
+                        next = Event.Cycle + offset;
+                    }else if ((possibleJob.PriorityDeadline + offset) < Current.PriorityDeadline)
+                    {
+                        ReadyList.Enqueue(Current);
+                        Current = null;
+                        next = Event.Cycle + offset;
+                    }
+
                 }
-                // We have executed the current task, so release all ready tasks,
-                // then assign/preempt a new task.
+                else
+                {
+                    if (finalExecutionSlice)
+                    {
+                        WaitingList.Enqueue(Current);
+                        Current = null;
+
+                        foreach (var item in Separation)
+                        {
+                            if (offset < item.Value)
+                            {
+                                offset = item.Value;
+                            }
+                        }
+                        next = Event.Cycle + offset;
+                    }
+
+                }
+
+
+
+
                 ReleaseTasks(Event.Cycle);
-                AssignTask();
-                // Set the cycle for the next task.
-                if (Current != null)
-                {
-                    Event.Cycle = Current.NextEvent(Event.Cycle, MacroTick);
-                    hasExecution = true;
-                }
-            }
-            //else
-            //{
-            //    ReleaseTasks(Event.Cycle);
-            //}
 
-            int next = hasExecution ? Event.Cycle : int.MaxValue;
 
-            if (ReadyList.Count() > 0)
-            {
-                int nextPremption = ReadyList.Peek().NextEvent(Event.Cycle, MacroTick);
-                if (nextPremption < next)
-                {
-                    next = nextPremption;
-                    AssignTask();
-                }
-            }
-            else if (!hasExecution && WaitingList.Count() > 0)
-            {
-                next = WaitingList.Peek().Release;
-            }
 
+
+            }
             Event.Cycle = next;
+
         }
         public Core Clone()
         {
@@ -147,7 +192,7 @@ namespace Planner.Objects
         }
         public Core DeepClone()
         {
-            return new Core(_cpuId, Id, MacroTick, _CF, Tasks);
+            return new Core(_cpuId, Id, MacroTick, _CF, Tasks, Separation);
         }
 
         private void ReleaseTasks(int currentCycle)
@@ -175,6 +220,33 @@ namespace Planner.Objects
                 }
             }
         }
+
+        private Job PredictAssignTask()
+        {
+            Job temp = null;
+            if (Current != null)
+            {
+                temp = Current.Clone();
+            }
+            
+            if (ReadyList.Count() > 0)
+            {
+                // Assign a task if we dont have one
+                if (temp == null)
+                {
+                    temp = ReadyList.Peek().Clone();
+                }
+                // Preempt the current task if the awaiting task's deadline is lower
+                //else if (ReadyList.Peek().PriorityDeadline < Current.PriorityDeadline)
+                else if (ReadyList.Peek().PriorityDeadline < temp.PriorityDeadline)
+                {
+                    //ReadyList.Enqueue(Current);
+                    temp = ReadyList.Peek().Clone();
+                }
+            }
+
+            return temp;
+        }
         private int OrderByDeadline(Job j1, Job j2)
         {
             if (j1.PriorityDeadline > j2.PriorityDeadline) return 1;
@@ -186,6 +258,26 @@ namespace Planner.Objects
             if (j1.Release > j2.Release) return 1;
             if (j1.Release == j2.Release) return 0;
             return -1;
+        }
+        public void CalcSeparation()
+        {
+            Separation.Clear();
+            foreach (var job in Tasks)
+            {
+                int currentsep = 0;
+                if (Separation.TryGetValue(job.Cil, out currentsep))
+                {
+                    if (currentsep < (job.ExecutionTime / 10))
+                    {
+                        Separation[job.Cil] = (job.ExecutionTime / (40/4));
+                    }
+                }
+                else
+                {
+                    Separation.Add(job.Cil, (job.ExecutionTime / (40 / 4)));
+                }
+            }
+
         }
     }
 }

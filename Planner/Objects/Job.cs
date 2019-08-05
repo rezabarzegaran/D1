@@ -14,13 +14,13 @@ namespace Planner.Objects
         private int _iteration;
         private Evaluator _evaluator;
 
-        public Job(int id, string name, int period, int deadline, int executionTime, int earliestActivation, int jitterThreshold, int cpuId, int coreId, double corecf, Evaluator evaluator, List<int> periods)
+        public Job(int id, string name, int period, int deadline, int executionTime, int earliestActivation, int jitterThreshold, int cpuId, int coreId, double corecf, Evaluator evaluator, List<int> periods , int cil)
         {
             _iteration = 0;
             Id = id;
             Name = name;
             Period = period;
-            
+            Cil = cil;
             ExecutionTime_base = executionTime;
             ExecutionTime = Convert.ToInt32(ExecutionTime_base * corecf);
             EarliestActivation = earliestActivation;
@@ -40,13 +40,13 @@ namespace Planner.Objects
             Periods = new List<int>(periods);
         }
 
-        public Job(int id, string name, int period, int deadline, int executionTime, int earliestActivation, int jitterThreshold, int cpuId, int coreId, double corecf, Evaluator evaluator, List<int> periods, List<Execution> _executionTrace)
+        public Job(int id, string name, int period, int deadline, int executionTime, int earliestActivation, int jitterThreshold, int cpuId, int coreId, double corecf, Evaluator evaluator, List<int> periods, List<Execution> _executionTrace, int cil)
         {
             _iteration = 0;
             Id = id;
             Name = name;
             Period = period;
-
+            Cil = cil;
             ExecutionTime_base = executionTime;
             ExecutionTime = Convert.ToInt32(ExecutionTime_base * corecf);
             EarliestActivation = earliestActivation;
@@ -77,9 +77,9 @@ namespace Planner.Objects
         public int Release { get; private set; }
         public int ExecutionTime { get; set; }
         public int ExecutionTime_base { get; }
-        public int EarliestActivation { get; }
+        public int EarliestActivation { get; set; }
         public int JitterThreshold { get; }
-        public int Deadline { get; }
+        public int Deadline { get; set; }
         public int AbsoluteDeadline { get; private set; }
         public int PriorityDeadline { get; private set; }
         public int DeadlineAdjustment { get; set; }
@@ -88,6 +88,7 @@ namespace Planner.Objects
         public int CpuId { get; }
         public int CoreId { get; private set; }
         public double CoreCF { get; set; }
+        public int Cil { get; }
         public List<int> Periods { get; private set; }
 
         public int RemainingET { get; private set; }
@@ -141,11 +142,11 @@ namespace Planner.Objects
         }
         public Job Clone()
         {
-            return new Job(Id, Name, Period, Deadline, ExecutionTime_base, EarliestActivation, JitterThreshold, CpuId, _coreId, CoreCF, _evaluator, Periods);
+            return new Job(Id, Name, Period, Deadline, ExecutionTime_base, EarliestActivation, JitterThreshold, CpuId, _coreId, CoreCF, _evaluator, Periods, Cil);
         }
         public Job DeepClone()
         {
-            return new Job(Id, Name, Period, Deadline, ExecutionTime_base, EarliestActivation, JitterThreshold, CpuId, _coreId, CoreCF, _evaluator, Periods, ExecutionTrace);
+            return new Job(Id, Name, Period, Deadline, ExecutionTime_base, EarliestActivation, JitterThreshold, CpuId, _coreId, CoreCF, _evaluator, Periods, ExecutionTrace, Cil);
         }
         public override string ToString()
         {

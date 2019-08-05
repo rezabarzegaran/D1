@@ -14,7 +14,7 @@ namespace Planner.Objects.Measurement
         private int _chainLength;
         private long _hyperperiod;
 
-        public TaskChain(string name, int threshold, double priority, bool _inorder)
+        public TaskChain(string name, int threshold, double priority)
         {
             Name = name;
             Threshold = threshold;
@@ -22,7 +22,6 @@ namespace Planner.Objects.Measurement
             _chainInstances = new List<ChainInstance>();
             Tasks = new List<VirtualTask>();
             _hyperperiod = 1;
-            inOrder = _inorder;
         }
 
         public string Name { get; }
@@ -32,7 +31,6 @@ namespace Planner.Objects.Measurement
         public double Priority { get; }
         public List<VirtualTask> Tasks { get; }
         public bool Completed { get; private set; }
-        public bool inOrder { get; set; }
 
         public void Reset()
         {

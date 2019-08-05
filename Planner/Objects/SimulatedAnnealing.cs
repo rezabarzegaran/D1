@@ -41,7 +41,7 @@ namespace Planner.Objects
             currentSolution.Run(true);
             Simulation best = currentSolution;
             BestSolutions.Add(best.DeepClone());
-            Console.WriteLine($"Base : {best.Fitness.ControlPenalty} - {best.Fitness.Score} - {best.Fitness.ValidSolution} - {best.Fitness.ViolationCount}");
+            Console.WriteLine($"Base : {best.Fitness.ControlPenalty / 40000} - {best.Fitness.ControlDevPenalty / 40000} - {best.Fitness.Score} - {best.Fitness.ValidSolution} - {best.Fitness.ViolationCount} - {best.Environment.Hyperperiod}");
             Debug(DebugLevel.GeneratedNeighbor, currentSolution.Fitness.Score);
             Debug(DebugLevel.AcceptedNeighbor, currentSolution.Fitness.Score);
             Debug(DebugLevel.BestNeighbor, currentSolution.Fitness.Score);
@@ -63,16 +63,16 @@ namespace Planner.Objects
                         if (currentSolution.Fitness.Score < best.Fitness.Score)
                         {
                             best = currentSolution;
-                            Console.WriteLine($" Best {TotalItter} : {best.Fitness.ControlPenalty / 50000} - {best.Fitness.Score} - {best.Fitness.ValidSolution} - {best.Fitness.ViolationCount}");
+                            Console.WriteLine($" Best {TotalItter} : {temp} - {best.Fitness.ControlPenalty / 40000} - {best.Fitness.ControlDevPenalty / 40000} - {best.Fitness.Score} - {best.Fitness.ValidSolution} - {best.Fitness.ViolationCount} - {best.Environment.Hyperperiod}");
                             BestSolutions.Add(best.DeepClone());
                             Debug(DebugLevel.BestNeighbor, best.Fitness.Score);
                         }
                     }
-                    //else if (AcceptanceProbability(currentSolution.Fitness.Score, candidate.Fitness.Score, temp) > _rng.NextDouble())
-                    //{
-                    //    currentSolution = candidate;
-                    //    Debug(DebugLevel.AcceptedNeighbor, candidate.Fitness.Score);
-                    //}
+                    else if (AcceptanceProbability(currentSolution.Fitness.Score, candidate.Fitness.Score, temp) > _rng.NextDouble())
+                    {
+                        currentSolution = candidate;
+                        Debug(DebugLevel.AcceptedNeighbor, candidate.Fitness.Score);
+                    }
                 }
 
                 temp *= 1 - _coolingRate;
@@ -87,7 +87,7 @@ namespace Planner.Objects
         private Simulation GetNeighbor(Simulation candidate)
         {
                 Simulation newCandidate = candidate.Clone();
-                switch (_rng.Next(66))
+                switch (_rng.Next(132))
                 {
                     case int n when n >= 0 && n < 33:     
                         AdjustDeadline(newCandidate);
@@ -99,7 +99,10 @@ namespace Planner.Objects
                         SwapTasks(newCandidate);
                         break;
                     case int n when n >= 100 && n < 133:
-                        AdjustPeriod(newCandidate);
+                        AdjustEarliestActivation(newCandidate);
+                        break;
+                    case int n when n >= 133 && n < 166:
+                        AdjustPeriod(newCandidate); 
                         break;
 
                 }
@@ -108,59 +111,6 @@ namespace Planner.Objects
             return newCandidate;
 
 
-        }
-        public bool checkvalidity(Simulation candidate)
-        {
-            bool inOrder = true;
-            
-            foreach (var chain in candidate.Evaluator.Chains)
-            {
-                if (chain.inOrder)
-                {
-                    int previous_t_finished = -1;
-                    int current_t_finished = 0;
-                    int current_t_start = 0;
-                    foreach (var task in chain.Tasks)
-                    {
-                        foreach (var job in candidate.SwappableTasks)
-                        {
-                            if (task.Name == job.Name)
-                            {
-                                current_t_finished = job.Offset + job.Deadline;
-                                current_t_start = job.Offset;
-                            }
-                        }
-                        foreach (var job in candidate.NonSwappableTasks)
-                        {
-                            if (task.Name == job.Name)
-                            {
-                                current_t_finished = job.Offset + job.Deadline;
-                                current_t_start = job.Offset;
-                            }
-                        }
-
-                        if ((previous_t_finished >= current_t_finished) || (previous_t_finished >= current_t_start))
-                        {
-                            inOrder = false;
-                        }
-
-                        previous_t_finished = current_t_finished;
-                        current_t_finished = 0;
-                        current_t_start = 0;
-
-
-                    }
-
-                }
-
-
-            }
-
-            if (inOrder)
-            {
-                return true;
-            }
-            return inOrder;
         }
     }
 

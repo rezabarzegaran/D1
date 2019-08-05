@@ -21,8 +21,6 @@ namespace Planner.Objects.Models
             [XmlElement("Chain")]
             public List<TaskChain> Chains { get; set; }
 
-            [XmlElement("VirtaulMachine")]
-            public List<VM> Partitions { get; set; }
 
             [XmlElement("Application")]
             public List<App> Applications { get; set; }
@@ -36,6 +34,7 @@ namespace Planner.Objects.Models
                 CoreId = -1;
                 MaxJitter = -1;
                 Offset = 0;
+                Cil = 1;
             }
 
             [XmlAttribute("Id")]
@@ -73,6 +72,9 @@ namespace Planner.Objects.Models
 
             [XmlAttribute("CoreId")]
             public int CoreId { get; set; }
+
+            [XmlAttribute("CIL")]
+            public int Cil { get; set; }
         }
 
         public class TaskChain
@@ -85,9 +87,6 @@ namespace Planner.Objects.Models
 
             [XmlAttribute("Name")]
             public string Name { get; set; }
-
-            [XmlAttribute("Inorder")]
-            public bool inOrder { get; set; }
 
             [XmlElement("Runnable")]
             public List<Runnable> Runnables { get; set; }
@@ -103,21 +102,6 @@ namespace Planner.Objects.Models
         {
             [XmlAttribute("Name")]
             public string Name { get; set; }
-        }
-        public class VM
-        {
-            public VM()
-            {
-                space = 25;
-            }
-            [XmlAttribute("Name")]
-            public string Name { get; set; }
-
-            [XmlAttribute("Space")]
-            public int space { get; set; }
-
-            [XmlElement("Runnable")]
-            public List<Runnable> Runnables { get; set; }
         }
         public class App
         {

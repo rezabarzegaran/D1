@@ -44,6 +44,10 @@ namespace Planner.Objects
         {
             return new Application(Id, Name, CA, InOrder, Tasks);
         }
+        public Application DeepClone()
+        {
+            return new Application(Id, Name, CA, InOrder, Tasks);
+        }
 
         public class ApplicationTasks
         {

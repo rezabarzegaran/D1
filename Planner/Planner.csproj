@@ -79,6 +79,7 @@
     <Compile Include="Objects\HeuristicFactory.cs" />
     <Compile Include="Objects\Measurement\AppMap.cs" />
     <Compile Include="Objects\Measurement\CoC.cs" />
+    <Compile Include="Objects\Measurement\CoreMap.cs" />
     <Compile Include="Objects\Measurement\Order.cs" />
     <Compile Include="Objects\Measurement\RelativeJitter.cs" />
     <Compile Include="Objects\Measurement\AbsoluteJitter.cs" />
@@ -88,12 +89,13 @@
     <Compile Include="Objects\Environment.cs" />
     <Compile Include="Objects\Extensions.cs" />
     <Compile Include="Objects\Job.cs" />
+    <Compile Include="Objects\Models\CoreTrace.cs" />
     <Compile Include="Objects\Models\DataLoader.cs" />
     <Compile Include="Objects\Models\Evaluation.cs" />
+    <Compile Include="Objects\Models\JobTrace.cs" />
     <Compile Include="Objects\Models\Map.cs" />
     <Compile Include="Objects\PriorityQueue.cs" />
     <Compile Include="Objects\Processor.cs" />
-    <Compile Include="Objects\QoC.cs" />
     <Compile Include="Objects\Schedule.cs" />
     <Compile Include="Objects\Greedy.cs" />
     <Compile Include="Objects\Simulation.cs" />

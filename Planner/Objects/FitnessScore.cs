@@ -1,6 +1,7 @@
 ﻿using Planner.Objects.Measurement;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Accord.IO;
 
@@ -24,7 +25,7 @@ namespace Planner.Objects
         /// <param name="chains">List of E2E values. </param>
         /// <param name="deadlines">List of deadline values.</param>
         /// <param name="jitters">List of jitter values.</param>
-        public FitnessScore(double w1, double w2, double w3, double w4, double w5, List<TaskChain> chains, List<Deadline> deadlines, List<JitterBase> jitters, List<Order> orders, List<CoC> controlcost, MLApp.MLApp matlab)
+        public FitnessScore(double w1, double w2, double w3, double w4, double w5, double w6, List<TaskChain> chains, List<Deadline> deadlines, List<JitterBase> jitters, List<Order> orders, List<CoC> controlcost, List<CoreMap> coremaps, MLApp.MLApp matlab)
         {
             Matlab = matlab;
             Dictionary<int, int> violationsCPUMap = new Dictionary<int, int>();
@@ -35,6 +36,8 @@ namespace Planner.Objects
             double jitterPenalty = 0;
             double orderPenalty = 0;
             double controlPenalty = 0;
+            double controlDevPenalty = 0;
+            double separationPenalty = 0;
 
             // Calculate valid score and penalites
             foreach (TaskChain chain in chains)
@@ -89,34 +92,53 @@ namespace Planner.Objects
                         OrderViolations++;
                     }
             }
-
+            List<double> CocVal = new List<double>();
             foreach (CoC controlapp in controlcost)
             {
-                controlPenalty += Penalty(controlapp);
+                double temp = Penalty(controlapp);
+                CocVal.Add(temp);
+                controlPenalty += temp;
             }
             if (controlcost.Count > 0) controlPenalty /= controlcost.Count;
 
+            controlDevPenalty = 0.01 * Penalty(controlPenalty, CocVal);
 
+
+
+
+            SeparationViolations = 0;
+            foreach (var map in coremaps)
+            {
+                separationPenalty += Penalty(map);
+                if (map.Failed)
+                {
+                    SeparationViolations++;
+                }
+                
+            }
+            if (coremaps.Count > 0) separationPenalty /= coremaps.Count;
 
             ValidSolution = (E2EViolations == 0) && (DeadlineViolations == 0) && (OrderViolations == 0) &&
-                            (JitterViolations == 0);
+                            (JitterViolations == 0) && (SeparationViolations == 0);
 
             // Calculate static and weighted penalties.
-            double staticPenalty = Math.Ceiling(Math.Min(1.0, e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty)) * w1;
+            double staticPenalty = Math.Ceiling(Math.Min(1.0, e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty + separationPenalty + controlDevPenalty)) * w1;
             E2EPenalty = e2EPenalty * w2;
             DeadlinePenalty = deadlinePenalty * w3;
             JitterPenalty = jitterPenalty * w4;
             OrderPenalty = orderPenalty * w1;
             ControlPenalty = controlPenalty * w5;
+            ControlDevPenalty = controlDevPenalty * w5;
+            SeparationPenalty = separationPenalty * w6;
             // Calculate score and combined penalty 
             MaxValidScore = w1;
             ValidScore = validScore * w1;
 
-            TotalPenalty = E2EPenalty + DeadlinePenalty + JitterPenalty + OrderPenalty + ControlPenalty + (ViolationCount * 1000);
+            TotalPenalty = E2EPenalty + DeadlinePenalty + JitterPenalty + OrderPenalty + ControlPenalty + SeparationPenalty + ControlDevPenalty + (ViolationCount * 10000);
             IsValid = ValidSolution;
             //Score = Math.Max(TotalPenalty, ValidScore);
             Score = TotalPenalty;
-            UnweightedScore = Math.Max(staticPenalty + (e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty) * w1, ValidScore);
+            UnweightedScore = Math.Max(staticPenalty + (e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty + separationPenalty + controlDevPenalty) * w1, ValidScore);
         }
 
         public double MaxValidScore { get; }
@@ -126,6 +148,8 @@ namespace Planner.Objects
         public double JitterPenalty { get; }
         public double OrderPenalty { get; }
         public double ControlPenalty { get; }
+        public double ControlDevPenalty { get; }
+        public double SeparationPenalty { get; }
         public double TotalPenalty { get; }
         public double Score { get; set; }
         public bool IsValid { get; }
@@ -135,7 +159,8 @@ namespace Planner.Objects
         public int OrderViolations { get; private set; }
         public int DeadlineViolations { get; private set; }
         public int JitterViolations { get; private set; }
-        public int ViolationCount => E2EViolations + DeadlineViolations + JitterViolations + OrderViolations;
+        public int SeparationViolations { get; private set; }
+        public int ViolationCount => E2EViolations + DeadlineViolations + JitterViolations + OrderViolations + SeparationViolations;
         public double UnweightedScore { get; private set; }
         public MLApp.MLApp Matlab = null;
 
@@ -221,6 +246,35 @@ namespace Planner.Objects
 
             app.Cost = CoCval;
             return CoCval;
+        }
+
+        private double Penalty(double avg, List<double> cocVal)
+        {
+            double _sum = 0;
+            foreach (double val in cocVal)
+            {
+                _sum += Math.Pow((val - avg) , 2);
+            }
+
+            double retVal = Math.Sqrt(_sum / cocVal.Count);
+            return retVal;
+        }
+
+        private double Penalty(CoreMap coremap)
+        {
+            coremap.CreateMap();
+            double Nslices = coremap.getNSlices();
+            int NFails = coremap.getNFailed();
+            double totalLength = coremap.getDuration();
+            
+            if (totalLength > 0)
+            {
+                //double pen = (Nslices / totalLength) + (NFails / Nslices);
+                double pen =  (NFails / Nslices);
+                return pen;
+            }
+
+            return 0;
         }
         private double Fitness(TaskChain chain)
         {

@@ -13,12 +13,12 @@ namespace Planner.Objects
     /// </summary>
     public class Simulation
     {
-        public Simulation(Workload workload, Configuration configuration, double w2, double w3, double w4, double w5)
+        public Simulation(Workload workload, Configuration configuration, double w2, double w3, double w4, double w5, double w6)
         {
             Environment = new Environment(configuration);
             SwappableTasks = new List<Job>();
             NonSwappableTasks = new List<Job>();
-            Evaluator = new Evaluator(w2, w3, w4, w5);
+            Evaluator = new Evaluator(w2, w3, w4, w5, w6);
             Applications = new List<Application>();
             Matlab = new MLApp.MLApp();
             Matlab.Execute("cd " + matlabexecutefilename);
@@ -27,7 +27,7 @@ namespace Planner.Objects
             // Configure constraints.
             foreach (Workload.TaskChain chain in workload.Work.Chains)
             {
-                Evaluator.EvalE2E(chain.Name, chain.Runnables.Select(x => tasks[x.Name]), chain.EndToEndDeadline, chain.Priority, chain.inOrder);
+                Evaluator.EvalE2E(chain.Name, chain.Runnables.Select(x => tasks[x.Name]), chain.EndToEndDeadline, chain.Priority);
             }
             foreach (Job task in tasks.Values)
             {
@@ -53,6 +53,14 @@ namespace Planner.Objects
                 if (app.CA) Evaluator.EvalQoC(app.Name, app.Runnables.Select(x => tasks[x.Name]));
 
                 applicationcounter++;
+            }
+
+            foreach (var CPU in Environment.Cpus)
+            {
+                foreach (var core in CPU.Cores)
+                {
+                    Evaluator.EvalCoreMap(CPU.Id, core.Id, Tasks.ToList());
+                }
             }
         }
         public Simulation(Environment environment, List<Job> nonSwappable, List<Job> swappable, Evaluator evaluator, List<Application> applications, MLApp.MLApp matlab)
@@ -98,7 +106,9 @@ namespace Planner.Objects
             AssignJobs();
             Initialize();
             Environment.Initialize();
-            long hyperperiod = (long)100 * Environment.Hyperperiod + Tasks.Max(x=>x.Offset);
+            long hyperperiod = (long)2 * Environment.Hyperperiod;
+            hyperperiod = SetHyperperiod(hyperperiod) + Tasks.Max(x => x.Offset);
+
             Evaluator.Reset();
 
             foreach (Processor cpu in Environment.Cpus)
@@ -129,7 +139,7 @@ namespace Planner.Objects
 
         public Simulation DeepClone()
         {
-            return new Simulation(Environment.DeepClone(), DeepCopyJobs(NonSwappableTasks), DeepCopyJobs(SwappableTasks), DeepCopyEvaluator(Evaluator), CopyApps(Applications), Fitness, Matlab);
+            return new Simulation(Environment.DeepClone(), DeepCopyJobs(NonSwappableTasks), DeepCopyJobs(SwappableTasks), DeepCopyEvaluator(Evaluator), DeepCopyApps(Applications), Fitness, Matlab);
 
         }
         /// <summary>
@@ -213,7 +223,7 @@ namespace Planner.Objects
                 
                 int et = rng.Next(ti.BCET, ti.WCET);
                 List<int> periods = ti.Periods.Select(x => x.Value).ToList();
-                Job j = new Job(ti.Id, ti.Name, periods.First(), ti.Deadline, et, ti.EarliestActivation, ti.MaxJitter, ti.CpuId, ti.CoreId, CORECF, Evaluator, periods);
+                Job j = new Job(ti.Id, ti.Name, periods.First(), ti.Deadline, et, ti.EarliestActivation, ti.MaxJitter, ti.CpuId, ti.CoreId, CORECF, Evaluator, periods, ti.Cil);
                 j.Offset = ti.Offset;
                 j.DeadlineAdjustment = ti.DeadlineAdjustment;
                 jobs.Add(ti.Name, j);
@@ -261,6 +271,14 @@ namespace Planner.Objects
                 return j;
             }).ToList();
         }
+        private List<Application> DeepCopyApps(IEnumerable<Application> applist)
+        {
+            return applist.Select(t =>
+            {
+                Application j = t.DeepClone();
+                return j;
+            }).ToList();
+        }
         private int OrderByCycle(TaskEvent te1, TaskEvent te2)
         {
             if (te1.Cycle > te2.Cycle) return 1;
@@ -291,6 +309,54 @@ namespace Planner.Objects
                 }
 
             }
+
+            foreach (var coreMap in Evaluator.CoreMaps)
+            {
+                coreMap.CalcSeparation();
+            }
+
+
+        }
+
+        public long SetHyperperiod(long current)
+        {
+            long Controlhyperperiod = 1;
+            int minperiod = Int32.MaxValue;
+            foreach (Application app in Applications)
+            {
+                if (app.CA)
+                {
+                    Job foundtask = Tasks.First(x => x.Name == app.Tasks[0].Name);
+                    int period = foundtask.Period;
+                    if (minperiod > period)
+                    {
+                        minperiod = period;
+                    }
+
+                    //foreach (Application.ApplicationTasks task in app.Tasks)
+                    //{
+                    //    Job foundtask = Tasks.First(x => x.Name == task.Name);
+                    //    if (foundtask != null)
+                    //    {
+                    //        int period = foundtask.Period;
+                    //        Controlhyperperiod = Extensions.LeastCommonMultiple(Controlhyperperiod, period);
+
+                    //    }
+                    //}
+                    
+                }
+                
+            }
+
+            int mintimes = Convert.ToInt32((current / minperiod));
+            int coefficient = 1 + 160/mintimes;
+
+            return coefficient * current;
+            //Controlhyperperiod *= 45;
+
+            //return Extensions.LeastCommonMultiple(Controlhyperperiod, current);
+
+
 
 
         }

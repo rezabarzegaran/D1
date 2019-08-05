@@ -11,7 +11,9 @@ namespace Planner.Objects
         public const double E2EWeight = 1;
         public const double DeadlineWeight = 1;
         public const double JitterWeight = 1;
-        public const double QoCWeight = 0;
+        public const double QoCWeight = 4;
+        //public const double QoCWeight = 0;
+        public const double SeparationWeight = 2;
         public static int MinutesToMiliSeconds(int min) => min * 60 * 1000;
         public static int SecondsToMiliSeconds(int sec) => sec * 1000;
 
@@ -19,7 +21,7 @@ namespace Planner.Objects
         {
             private const double window = 70000;
             public const double CR = 0.0739;
-            public const int NrIterations = 10;
+            public const int NrIterations = 15;
             private static double Scale(int durationMiliSeconds, int nrIterations) => (window / durationMiliSeconds);
             public static double CoolingRate(int durationMiliSeconds, int nrIterations, double coolingRate) => coolingRate * Scale(durationMiliSeconds, nrIterations);
         }
@@ -67,7 +69,7 @@ namespace Planner.Objects
         }
         public static Simulation Load(Workload workload, Configuration configuration)
         {
-            return new Simulation(workload, configuration, E2EWeight, DeadlineWeight, JitterWeight, QoCWeight);
+            return new Simulation(workload, configuration, E2EWeight, DeadlineWeight, JitterWeight, QoCWeight, SeparationWeight);
         }
     }
 }

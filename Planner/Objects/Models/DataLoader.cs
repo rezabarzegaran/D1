@@ -40,11 +40,12 @@ namespace Planner.Objects.Models
             Configuration configuration = Load<Configuration>(path[1]);
             return (workload, configuration);
         }
-        public static void Unload(string _resultfile, string _taskmapfile, string _vmmapfile, List<Simulation> s)
+        public static void Unload(string _resultfile, string _taskmapfile, string _vmmapfile, string _coresmapfile, List<Simulation> s)
         {
             System.IO.Directory.CreateDirectory(_resultfile);
             System.IO.Directory.CreateDirectory(_taskmapfile);
             System.IO.Directory.CreateDirectory(_vmmapfile);
+            System.IO.Directory.CreateDirectory(_coresmapfile);
             string file = _resultfile + @"\Results.xml";
             Evaluation _evaluation = new Evaluation();
 
@@ -63,6 +64,8 @@ namespace Planner.Objects.Models
                 SetEvaluationScore(temp, simulation.Evaluator);
 
                 SetTaskMap(_taskmapfile, count, simulation);
+                SetTaskTrace(_taskmapfile, count, simulation);
+                SetCoreTrace(_coresmapfile, count, simulation);
 
                 SetVmMap(_vmmapfile, count, simulation);
 
@@ -147,10 +150,12 @@ namespace Planner.Objects.Models
             temp.Scores.E2E = fitness.E2EPenalty;
             temp.Scores.Deadline = fitness.DeadlinePenalty;
             temp.Scores.Control = fitness.ControlPenalty;
+            temp.Scores.DevControl = fitness.ControlDevPenalty;
             temp.Scores.Instance = -1;
             temp.Scores.Jitter = fitness.JitterPenalty;
             temp.Scores.Order = fitness.OrderPenalty;
             temp.Scores.VM = -1;
+            temp.Scores.Separation = fitness.SeparationPenalty;
             temp.Scores.valid = fitness.IsValid;
 
 
@@ -188,6 +193,7 @@ namespace Planner.Objects.Models
             temp.Violations.Jitter = fitness.JitterViolations;
             temp.Violations.Order = fitness.OrderViolations;
             temp.Violations.Instance = -1;
+            temp.Violations.Separation = fitness.SeparationViolations;
 
 
         }
@@ -219,6 +225,83 @@ namespace Planner.Objects.Models
                 _taskmap.items.Add(_item);
             }
             Save(taskmapfile, _taskmap);
+        }
+        public static void SetTaskTrace(string _tracefolder, int count, Simulation simulation)
+        {
+            string currentPath = _tracefolder + @"\Sulotion_" + count.ToString();
+            System.IO.Directory.CreateDirectory(currentPath);            
+
+            foreach (var job in simulation.Tasks)
+            {
+                string filename = currentPath + @"\Job_" + job.Name + "_trace.xml";
+                JobTrace _tasktrace = new JobTrace();
+                JobTrace.Item _item = new JobTrace.Item();
+                _item.OwnerName = job.Name;
+                _item.CoreId = job.CoreId;
+                _item.CpuId = job.CpuId;
+                foreach (var execution in job.ExecutionTrace)
+                {
+                    JobTrace.Item.Event t = new JobTrace.Item.Event();
+                    t.Cycle = execution.Cycle;
+                    t.RemainingET = execution.RemainingET;
+                    t.StepSize = execution.ExecutionSize;
+                    _item.events.Add(t);
+
+                }
+
+                _tasktrace.items.Add(_item);
+                Save(filename, _tasktrace);
+
+            }
+        }
+        public static void SetCoreTrace(string _tracefolder, int count, Simulation simulation)
+        {
+            string currentPath = _tracefolder + @"\Sulotion_" + count.ToString();
+            System.IO.Directory.CreateDirectory(currentPath);
+
+            foreach (var CPU in simulation.Environment.Cpus)
+            {
+                foreach (var core in CPU.Cores)
+                {
+                    CoreTrace _coretrace = new CoreTrace();
+                    List<CoreTrace.Item.Event> _events = new List<CoreTrace.Item.Event>();
+                    string filename = currentPath + @"\Cpu_" + CPU.Id.ToString() + "_Core_" + core.Id.ToString() + "_trace.xml";
+
+                    CoreTrace.Item _item = new CoreTrace.Item();
+                    _item.CpuId = CPU.Id;
+                    _item.CoreId = core.Id;
+                    List<Job> Jobs = simulation.Tasks.ToList()
+                        .FindAll(x => ((x.CoreId == core.Id) && (x.CpuId == CPU.Id)));
+                    foreach (var job in Jobs)
+                    {
+
+                        foreach (var execution in job.ExecutionTrace)
+                        {
+                            CoreTrace.Item.Event t = new CoreTrace.Item.Event();
+                            t.Cycle = execution.Cycle;
+                            t.RemainingET = execution.RemainingET;
+                            t.StepSize = execution.ExecutionSize;
+                            t.OwnerName = job.Name;
+                            _events.Add(t);
+
+                        }
+
+                       
+
+
+
+                    }
+                    _item.events = _events.OrderBy(x => x.Cycle).ToList();
+
+                    _coretrace.items.Add(_item);
+                    Save(filename, _coretrace);
+
+
+
+
+                }
+
+            }
         }
 
         public static void SetVmMap(string _vmmapfile, int count, Simulation simulation)

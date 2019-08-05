@@ -84,6 +84,8 @@ namespace Planner.Objects.Models
                 public double Deadline { get; set; }
                 public double Order { get; set; }
                 public double Control { get; set; }
+                public double DevControl { get; set; }
+                public double Separation { get; set; }
                 public double Instance { get; set; }
                 public double VM { get; set; }
                 public bool valid { get; set; }
@@ -104,6 +106,7 @@ namespace Planner.Objects.Models
                 public int Jitter { get; set; }
                 public int Order { get; set; }
                 public int Instance { get; set; }
+                public int Separation { get; set; }
 
             }
 

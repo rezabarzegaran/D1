@@ -65,85 +65,121 @@ namespace Planner.BaseClasses
 
         protected void AdjustDeadline(Simulation candidate)
         {
-            string failed = candidate.Evaluator.Jitters.Where(x => x.Failed).Select(x => x.OwnerName).FirstOrDefault();
-            if (failed != null)
+            CoreMap worstCore = candidate.Evaluator.CoreMaps.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
+            if (worstCore != null)
             {
-                Job j = candidate.Tasks.FirstOrDefault(x => x.Name == failed);
+                int WorstCil = worstCore.getWorstCil();
+                if (WorstCil != -1)
+                {
+                    List<Job> TargetJobs = candidate.Tasks.ToList().FindAll(x => x.Cil == WorstCil).ToList();
+                    if (TargetJobs.Count > 0)
+                    {
+                        Job j = TargetJobs.Randomize(_rng).FirstOrDefault();
+                        j.DeadlineAdjustment = _rng.Next(0, j.MaxDeadlineAdjustment) + j.EarliestActivation;
+                    }
+
+
+                }
+
+            }
+            else
+            {
+                Job j = candidate.Tasks.ToList().Randomize(_rng).FirstOrDefault();
                 j.DeadlineAdjustment = _rng.Next(0, j.MaxDeadlineAdjustment) + j.EarliestActivation;
             }
 
+
         }
+        
+        protected void AdjustEarliestActivation(Simulation candidate)
+        {
+            Order worstOrder = candidate.Evaluator.Orders.Where(x => x.Failed).ToList().FirstOrDefault();
+            if (worstOrder != null)
+            {
+                List<Job> Jobs = candidate.Tasks.ToList();
+                Job j = Jobs.Find(x => x.Name == worstOrder.Tasks.Randomize(_rng).FirstOrDefault().Name);
+                if (j != null)
+                {
+                    j.EarliestActivation = _rng.Next(0, (j.Period / 2));
+                }
+
+            }
+            else
+            {
+                CoreMap worstCore = candidate.Evaluator.CoreMaps.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
+                if (worstCore != null)
+                {
+                    int WorstCil = worstCore.getWorstCil();
+                    if (WorstCil != -1)
+                    {
+                        List<Job> Jobs = candidate.Tasks.ToList();
+                        Job j = Jobs.Where(x => x.Cil == WorstCil).Randomize(_rng).FirstOrDefault();
+                        j.EarliestActivation = _rng.Next(0, (j.Period / 2));
+                    }
+
+                }
+
+            }
+        }
+
         protected void AdjustPeriod(Simulation candidate)
         {
-            List<Job> NonSwappable = candidate.NonSwappableTasks;
-            List<Job> Swappable = candidate.SwappableTasks;
-
-            int cnt = NonSwappable.Count + Swappable.Count;
-            int idx = _rng.Next(cnt);
-
-            Job j  = idx < NonSwappable.Count ? NonSwappable[idx] : Swappable[idx - NonSwappable.Count];
-            j.Period = j.Periods[_rng.Next(0, j.Periods.Count)];
-
-            string related_chainname = null;
-            foreach (var chain in candidate.Evaluator.Chains)
+            CoC worstControl = candidate.Evaluator.ControlCost.OrderByDescending(x => x.Cost).ToList().FirstOrDefault();
+            if (worstControl != null)
             {
-                foreach (var task in chain.Tasks)
+                int selectedPeriod = -1;
+                foreach (var task in worstControl.Tasks)
                 {
-                    if (j.Name == task.Name)
+                    Job jobToChange = candidate.Tasks.ToList().FirstOrDefault(x => x.Name == task.Name);
+                    if (jobToChange != null)
                     {
-                        related_chainname = chain.Name;
-                        break;
-                    }
-                }
-
-            }
-
-            foreach (var chain in candidate.Evaluator.Chains)
-            {
-                if (chain.Name == related_chainname)
-                {
-                    if (chain.inOrder)
-                    {
-                        foreach (var task in chain.Tasks)
+                        if (selectedPeriod != -1)
                         {
-                            foreach (var job in candidate.NonSwappableTasks)
-                            {
-                                if (job.Name == task.Name)
-                                {
-                                    job.Period = j.Period;
-                                }
-                            }
-                            foreach (var job in candidate.SwappableTasks)
-                            {
-                                if (job.Name == task.Name)
-                                {
-                                    job.Period = j.Period;
-                                }
-                            }
+                            jobToChange.Period = selectedPeriod;
+                            jobToChange.Deadline = selectedPeriod;
                         }
+                        else
+                        {
+                            selectedPeriod = jobToChange.Periods[_rng.Next(0, jobToChange.Periods.Count)];
+                            jobToChange.Period = selectedPeriod;
+                            jobToChange.Deadline = selectedPeriod;
+                        }
+
                     }
                 }
-            }
+                
+            } 
         }
 
         protected void AdjustOffset(Simulation candidate, int targetCpu = -1)
         {
-            List<Job> NonSwappable = candidate.NonSwappableTasks;
-            List<Job> Swappable = candidate.SwappableTasks;
-
-            int cnt = NonSwappable.Count + Swappable.Count;
-            int idx = _rng.Next(cnt);
-
-            Job j = null;
-            if (targetCpu >= 0)
+            TaskChain worstChain = candidate.Evaluator.Chains.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
+            if (worstChain != null)
             {
-                j = candidate.Tasks.Where(x => x.CpuId == targetCpu).Randomize(_rng).FirstOrDefault();
+                string taskName = worstChain.Tasks.Randomize(_rng).Select(x => x.Name).FirstOrDefault();
+                Job j = candidate.Tasks.ToList().Find(x => x.Name == taskName);
+                j.Offset = _rng.Next(0, j.MaxOffset);
             }
-            if (j == null)
+            else
             {
-                j = idx < NonSwappable.Count ? NonSwappable[idx] : Swappable[idx - NonSwappable.Count];
+                List<Job> NonSwappable = candidate.NonSwappableTasks;
+                List<Job> Swappable = candidate.SwappableTasks;
+
+                int cnt = NonSwappable.Count + Swappable.Count;
+                int idx = _rng.Next(cnt);
+
+                Job j = null;
+                if (targetCpu >= 0)
+                {
+                    j = candidate.Tasks.Where(x => x.CpuId == targetCpu).Randomize(_rng).FirstOrDefault();
+                }
+                if (j == null)
+                {
+                    j = idx < NonSwappable.Count ? NonSwappable[idx] : Swappable[idx - NonSwappable.Count];
+                }
+                j.Offset = _rng.Next(0, j.MaxOffset);
             }
-            j.Offset = _rng.Next(0, j.MaxOffset);
+
         }
         protected void SwapTasks(Simulation candidate)
         {
@@ -157,8 +193,8 @@ namespace Planner.BaseClasses
                     double coreCF1 = j1.CoreCF;
                     j1.SetEnvironment(j2.CoreId, j2.CoreCF);
                     j2.SetEnvironment(coreId1 , coreCF1);
-                    j1.Offset = 0;
-                    j2.Offset = 0;
+                    //j1.Offset = 0;
+                    //j2.Offset = 0;
                     j1.DeadlineAdjustment = 0;
                     j2.DeadlineAdjustment = 0;
                 }

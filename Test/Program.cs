@@ -19,20 +19,21 @@ namespace Test
 
         static void Main(string[] args)
         {
-            int duration = 1500000;
-            duration = 180000;
+            int duration = 2200000;
+            //duration = 50000;
             string file = @"Data\Tasks.xml";
             string config = @"Data\Config.xml";
             string outFile = @"Data\Results";
             string TasksoutFile = @"Data\Results\Tasks";
             string VmsoutFile = @"Data\Results\VMs";
+            string CoresoutFile = @"Data\Results\Cores";
 
             (Workload work, Configuration cfg) scheme = DataLoader.Load(file, config);
             Simulation s = HeuristicFactory.Load(scheme.work, scheme.cfg);
             Console.WriteLine(s);
             //Simulation s2 = RunSimulatedAnnealing(s, 1500000);
             List<Simulation> bestSolutions = RunSimulatedAnnealing(s, duration);
-            DataLoader.Unload(outFile, TasksoutFile, VmsoutFile, bestSolutions);
+            DataLoader.Unload(outFile, TasksoutFile, VmsoutFile, CoresoutFile, bestSolutions);
             //Schedule schedule = s2.GetSchedule();
             //schedule.Run();
             //schedule.Build("schedule.txt", "test.svg");

@@ -17,34 +17,37 @@ namespace Planner.Objects
         private readonly double _w3;
         private readonly double _w4;
         private readonly double _w5;
+        private readonly double _w6;
         private int _completedChains;
         public bool validchains;
 
-        public Evaluator(double w2, double w3, double w4, double w5)
+        public Evaluator(double w2, double w3, double w4, double w5, double w6)
         {
-            _w1 = 1_0_000;
+            _w1 = 1_000;
             _w2 = _w1 * w2;
             _w3 = _w1 * w3;
             _w4 = _w1 * w4;
             _w5 = _w1 * w5;
+            _w6 = _w1 * w6;
             eventMap = new Dictionary<string, List<IMeasurement>>();
             Chains = new List<TaskChain>();
             Deadlines = new List<Deadline>();
             TaskMaps = new List<TaskMap>();
             AppMaps = new List<AppMap>();
+            CoreMaps = new List<CoreMap>();
             Jitters = new List<JitterBase>();
             Orders = new List<Order>();
             ControlCost = new List<CoC>();
 
         }
-        public Evaluator(List<TaskChain> chains, List<Deadline> deadlines, List<CoC> coc, List<TaskMap> taskmap )
+        public Evaluator(List<TaskChain> chains, List<Deadline> deadlines, List<CoC> coc, List<TaskMap> taskmap, List<CoreMap> coremap , List<Order> orders)
         {
 
             //eventMap = new Dictionary<string, List<IMeasurement>>();
             Chains = new List<TaskChain>();
             foreach (var chain in chains)
             {
-                TaskChain tc = new TaskChain(chain.Name, chain.Threshold, chain.Priority, chain.inOrder);
+                TaskChain tc = new TaskChain(chain.Name, chain.Threshold, chain.Priority);
                 tc.E2E = chain.E2E;
                 Chains.Add(tc);
             }
@@ -81,6 +84,17 @@ namespace Planner.Objects
                 ControlCost.Add(tc);
             }
 
+            CoreMaps = new List<CoreMap>();
+            foreach (var map in coremap)
+            {
+                CoreMaps.Add(new CoreMap(map.CpuID,map.CoreID, map.Tasks, map.Events, map.Separation));
+            }
+            Orders = new List<Order>();
+            foreach (var item in orders)
+            {
+                Orders.Add(new Order(item.Name, item.Tasks, item.BadCycle));
+            }
+
         }
 
         public List<TaskChain> Chains { get; }
@@ -88,6 +102,7 @@ namespace Planner.Objects
         public List<JitterBase> Jitters { get; }
         public List<TaskMap> TaskMaps { get; }
         public List<AppMap> AppMaps { get; }
+        public List<CoreMap> CoreMaps { get; }
         public List<Order> Orders { get; }
         public List<CoC> ControlCost { get; }
         public double MaxValidScore => _w1;
@@ -95,7 +110,7 @@ namespace Planner.Objects
 
         public FitnessScore GetScore(MLApp.MLApp matlab)
         {
-            return new FitnessScore(_w1, _w2, _w3, _w4,  _w5, Chains, Deadlines, Jitters, Orders, ControlCost, matlab);
+            return new FitnessScore(_w1, _w2, _w3, _w4,  _w5, _w6, Chains, Deadlines, Jitters, Orders, ControlCost, CoreMaps, matlab);
         }
         public void Reset()
         {
@@ -108,10 +123,11 @@ namespace Planner.Objects
             Jitters.ForEach(x => x.Reset());
             Orders.ForEach(x => x.Reset());
             ControlCost.ForEach(x => x.Reset());
+            CoreMaps.ForEach(x => x.Reset());
         }
-        public void EvalE2E(string name, IEnumerable<Job> taskchain, int threshold, double priority, bool inorder)
+        public void EvalE2E(string name, IEnumerable<Job> taskchain, int threshold, double priority)
         {
-            TaskChain tc = new TaskChain(name, threshold, priority, inorder);
+            TaskChain tc = new TaskChain(name, threshold, priority);
             HashSet<string> uniqueTaskNames = new HashSet<string>();
             foreach (Job task in taskchain)
             {
@@ -198,6 +214,18 @@ namespace Planner.Objects
             uniqueTaskNames.ForEach(tName => eventMap[tName].Add(tc));
             ControlCost.Add(tc);
         }
+
+        public void EvalCoreMap(int cpuid, int coreid, List<Job> jobs)
+        {
+            CoreMap tc = new CoreMap(cpuid, coreid);
+
+            foreach (var job in jobs)
+            {
+                tc.AddTask(job);
+            }
+
+            CoreMaps.Add(tc);
+        }
         public void EvalJitter(Job task)
         {
             RelativeJitter jitter = new RelativeJitter(task);
@@ -247,7 +275,7 @@ namespace Planner.Objects
 
         public Evaluator clone()
         {
-            return new Evaluator(Chains, Deadlines, ControlCost, TaskMaps);
+            return new Evaluator(Chains, Deadlines, ControlCost, TaskMaps, CoreMaps, Orders);
         }
 
     }

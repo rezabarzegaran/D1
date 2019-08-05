@@ -16,6 +16,21 @@ namespace Planner.Objects.Measurement
             Length = 0;
             BadCycle = new List<int>();
         }
+        public Order(string name, List<InorderTasks> tasks, List<int> badcycle )
+        {
+            Name = name;
+            Tasks = new List<InorderTasks>();
+            foreach (var item in tasks)
+            {
+                Tasks.Add(new InorderTasks(item.Name));
+            }
+            Length = Tasks.Count;
+            BadCycle = new List<int>();
+            foreach (var item in badcycle)
+            {
+                BadCycle.Add(item);
+            }
+        }
         public string Name { get; }
         public int Violations { get; private set; }
         public List<int> BadCycle { get; set; }
@@ -69,12 +84,16 @@ namespace Planner.Objects.Measurement
 
         public int CheckViolation()
         {
-            int instances = 0;
+            int instances = Int32.MaxValue;
             foreach (var task in Tasks)
             {
                 int startnums = task.Starts.Count;
                 int endnums = task.Ends.Count;
-                instances = endnums;
+                if (instances > endnums)
+                {
+                    instances = endnums;
+                }
+                //instances = endnums;
                 if (startnums != endnums)
                 {
                     Violations++;
@@ -88,6 +107,7 @@ namespace Planner.Objects.Measurement
                 }
             }
 
+            Violations = 0;
             if (Violations == 0)
             {
                 for (int i = 0; i < instances; i++)
