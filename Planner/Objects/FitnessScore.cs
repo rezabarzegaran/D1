@@ -202,7 +202,7 @@ namespace Planner.Objects
             //order.CheckViolation();
             if (order.CheckViolation() != 0)
             {
-                return (double)50;
+                return (double) (50 + order.Violations * 2);
             }
 
             return 0;

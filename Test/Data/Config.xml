@@ -3,11 +3,5 @@
   <Cpu Id="0" >
     <Core Id="0" MacroTick ="400" CF ="1"/>
     <Core Id="1" MacroTick ="400" CF ="1"/>
-    <Core Id="2" MacroTick ="400" CF ="1"/> 
-  </Cpu>
-  <Cpu Id="1" >
-    <Core Id="0" MacroTick ="400" CF ="1"/>
-    <Core Id="1" MacroTick ="400" CF ="1"/>
-    <Core Id="2" MacroTick ="400" CF ="1"/>
   </Cpu>
 </Configuration>

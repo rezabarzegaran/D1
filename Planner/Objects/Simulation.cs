@@ -86,7 +86,7 @@ namespace Planner.Objects
             Matlab.Execute("cd " + matlabexecutefilename);
         }
 
-        private string matlabexecutefilename = @"C:\Users\mohba\Documents\GitHub\JitterTime\Code";
+        private string matlabexecutefilename = @"D:\GitHub\JitterTime\Code";
         public List<Job> SwappableTasks { get; }
         public List<Job> NonSwappableTasks { get; }
         public IEnumerable<Job> Tasks => SwappableTasks.Concat(NonSwappableTasks);
