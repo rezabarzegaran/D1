@@ -1,138 +1,263 @@
 <?xml version="1.0" encoding="utf-8"?>
 <graphml >
-  <Graph id="ControlTask" edgedefault="directed">
-    <Node Id="1" Name="T1" BCET="500" WCET="500" Deadline="10000" CpuId="0"  CIL="2">
+  <Graph id="FORA" edgedefault="directed">
+    <Node Id="1" Name="T1" BCET="900" WCET="900" Deadline="10000" CpuId="0"  CIL="3">
       <Period Value="10000"/>
     </Node>
-	<Node Id="2" Name="T2" BCET="500" WCET="500" Deadline="10000"  CpuId="0"  CIL="2">
+	<Node Id="2" Name="T2" BCET="1600" WCET="1600" Deadline="10000"  CpuId="0"  CIL="3">
       <Period Value="10000"/>
     </Node>
-	<Node Id="3" Name="T3" BCET="1000" WCET="1000" Deadline="10000"  CpuId="0"  CIL="2">
+	<Node Id="3" Name="T3" BCET="1000" WCET="1000" Deadline="10000"  CpuId="0"  CIL="3">
       <Period Value="10000"/>
     </Node>
-
-
-	<Node Id="4" Name="T4" BCET="2000" WCET="2000" Deadline="15000"  CpuId="0"  CIL="1">
+	<Node Id="4" Name="T4" BCET="900" WCET="900" Deadline="10000"  CpuId="1"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="5" Name="T5" BCET="1600" WCET="1600" Deadline="10000"  CpuId="1"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="6" Name="T6" BCET="1000" WCET="1000" Deadline="10000"  CpuId="1" CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="7" Name="T7" BCET="900" WCET="900" Deadline="10000"  CpuId="2"  CIL="3">
+      <Period Value="10000"/>
+    </Node>	
+	<Node Id="8" Name="T8" BCET="1600" WCET="1600" Deadline="10000"  CpuId="2"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="9" Name="T9" BCET="1000" WCET="1000" Deadline="10000"  CpuId="2" CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="10" Name="T10" BCET="900" WCET="900" Deadline="10000" CpuId="3"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="11" Name="T11" BCET="1600" WCET="1600" Deadline="10000"  CpuId="3"  CIL="3">
+      <Period Value="10000"/>
+    </Node>	
+	<Node Id="12" Name="T12" BCET="1000" WCET="1000" Deadline="10000"  CpuId="3"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="13" Name="T13" BCET="900" WCET="900" Deadline="10000"  CpuId="4"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="14" Name="T14" BCET="1600" WCET="1600" Deadline="10000"  CpuId="4"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="15" Name="T15" BCET="1000" WCET="1000" Deadline="10000"  CpuId="4"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="16" Name="T16" BCET="1400" WCET="1400" Deadline="10000"  CpuId="4"  CIL="2">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="17" Name="T17" BCET="1600" WCET="1600" Deadline="10000"  CpuId="4"  CIL="2">
+      <Period Value="10000"/>
+    </Node>
+	
+	<Node Id="18" Name="T18" BCET="1500" WCET="1500" Deadline="10000"  CpuId="3"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="19" Name="T19" BCET="1000" WCET="1000" Deadline="10000"  CpuId="3"  CIL="3">
+      <Period Value="10000"/>
+    </Node>	
+	<Node Id="20" Name="T20" BCET="1000" WCET="1000" Deadline="10000"  CpuId="3"  CIL="3">
+      <Period Value="10000"/>
+    </Node>
+	
+	<Node Id="21" Name="T21" BCET="2500" WCET="2500" Deadline="8000"  CpuId="3"  CIL="2">
+      <Period Value="8000"/>
+    </Node>
+	
+	<Node Id="22" Name="T22" BCET="700" WCET="700" Deadline="10000"  CpuId="1"  CIL="1">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="23" Name="T23" BCET="1000" WCET="1000" Deadline="10000"  CpuId="1"  CIL="1">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="24" Name="T24" BCET="600" WCET="600" Deadline="10000"  CpuId="1"  CIL="1">
+      <Period Value="10000"/>
+    </Node>
+	<Node Id="25" Name="T25" BCET="500" WCET="500" Deadline="10000"  CpuId="1"  CIL="1">
+      <Period Value="10000"/>
+    </Node>
+	
+	<Node Id="26" Name="T26" BCET="600" WCET="600" Deadline="6000"  CpuId="2"  CIL="1">
+      <Period Value="6000"/>
+    </Node>
+	<Node Id="27" Name="T27" BCET="500" WCET="500" Deadline="6000"  CpuId="2"  CIL="1">
+      <Period Value="6000"/>
+    </Node>
+	<Node Id="28" Name="T28" BCET="600" WCET="600" Deadline="6000"  CpuId="2"  CIL="1">
+      <Period Value="6000"/>
+    </Node>
+	
+	<Node Id="29" Name="T29" BCET="1200" WCET="1200" Deadline="15000"  CpuId="1"  CIL="1">
       <Period Value="15000"/>
     </Node>
-	<Node Id="5" Name="T5" BCET="2000" WCET="2000" Deadline="15000"  CpuId="0"  CIL="1">
+	<Node Id="30" Name="T30" BCET="1200" WCET="1200" Deadline="15000"  CpuId="1"  CIL="1">
       <Period Value="15000"/>
     </Node>
-	<Node Id="6" Name="T6" BCET="1500" WCET="1500" Deadline="15000"  CpuId="0" CIL="1">
+	<Node Id="31" Name="T31" BCET="1500" WCET="1500" Deadline="15000"  CpuId="1"  CIL="1">
       <Period Value="15000"/>
     </Node>
-	<Node Id="7" Name="T7" BCET="1000" WCET="1000" Deadline="15000"  CpuId="0"  CIL="1">
+	<Node Id="32" Name="T32" BCET="1000" WCET="1000" Deadline="15000"  CpuId="1"  CIL="1">
       <Period Value="15000"/>
     </Node>
-	<Node Id="8" Name="T8" BCET="2000" WCET="2000" Deadline="15000"  CpuId="0"  CIL="1">
+	<Node Id="33" Name="T33" BCET="800" WCET="800" Deadline="15000"  CpuId="1"  CIL="1">
       <Period Value="15000"/>
     </Node>
-
-
-	<Node Id="9" Name="T9" BCET="1000" WCET="1000" Deadline="20000"  CpuId="0" CIL="2">
-      <Period Value="20000"/>
+	<Node Id="34" Name="T34" BCET="700" WCET="700" Deadline="15000"  CpuId="1"  CIL="1">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="10" Name="T10" BCET="500" WCET="500" Deadline="20000" CpuId="0"  CIL="2">
-      <Period Value="20000"/>
+	<Node Id="35" Name="T35" BCET="1200" WCET="1200" Deadline="15000"  CpuId="1"  CIL="1">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="11" Name="T11" BCET="500" WCET="500" Deadline="20000"  CpuId="0"  CIL="2">
-      <Period Value="20000"/>
+	<Node Id="36" Name="T36" BCET="1200" WCET="1200" Deadline="15000"  CpuId="1"  CIL="1">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="12" Name="T12" BCET="1000" WCET="1000" Deadline="20000"  CpuId="0"  CIL="2">
-      <Period Value="20000"/>
+	
+	<Node Id="37" Name="T37" BCET="1200" WCET="1200" Deadline="15000"  CpuId="4"  CIL="2">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="13" Name="T13" BCET="1500" WCET="1500" Deadline="20000"  CpuId="0"  CIL="2">
-      <Period Value="20000"/>
+	<Node Id="38" Name="T38" BCET="1200" WCET="1200" Deadline="15000"  CpuId="4"  CIL="2">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="14" Name="T14" BCET="500" WCET="500" Deadline="20000"  CpuId="0"  CIL="2">
-      <Period Value="20000"/>
+	<Node Id="39" Name="T39" BCET="2000" WCET="2000" Deadline="15000"  CpuId="4"  CIL="2">
+      <Period Value="15000"/>
     </Node>
-
-
-	<Node Id="15" Name="T15" BCET="500" WCET="500" Deadline="24000" EarliestActivation="0" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	<Node Id="40" Name="T40" BCET="1500" WCET="1500" Deadline="15000"  CpuId="4"  CIL="2">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="16" Name="T16" BCET="2500" WCET="2500" Deadline="24000" EarliestActivation="500" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	<Node Id="41" Name="T41" BCET="1200" WCET="1200" Deadline="15000"  CpuId="4"  CIL="2">
+      <Period Value="15000"/>
     </Node>
-	<Node Id="17" Name="T17" BCET="3000" WCET="3000" Deadline="24000" EarliestActivation="3000" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	
+	<Node Id="42" Name="T42" BCET="1400" WCET="1400" Deadline="10000" CpuId="0"  CIL="2">
+      <Period Value="10000"/>
     </Node>
-	<Node Id="18" Name="T18" BCET="1000" WCET="1000" Deadline="24000" EarliestActivation="6000" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	<Node Id="43" Name="T43" BCET="1200" WCET="1200" Deadline="10000" CpuId="0"  CIL="2">
+      <Period Value="10000"/>
     </Node>
-	<Node Id="19" Name="T19" BCET="3000" WCET="3000" Deadline="24000" EarliestActivation="7000" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	
+	<Node Id="44" Name="T44" BCET="1500" WCET="1500" Deadline="8000" CpuId="2"  CIL="1">
+      <Period Value="8000"/>
     </Node>
-	<Node Id="20" Name="T20" BCET="1000" WCET="1000" Deadline="24000" EarliestActivation="10000" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	<Node Id="45" Name="T45" BCET="1500" WCET="1500" Deadline="8000" CpuId="2"  CIL="1">
+      <Period Value="8000"/>
     </Node>
-	<Node Id="21" Name="T21" BCET="500" WCET="500" Deadline="24000" EarliestActivation="10500" CpuId="0"  CIL="3">
-      <Period Value="20000"/>
-	    <Period Value="18000"/>
-	    <Period Value="22000"/>
-	    <Period Value="24000"/>
-	    <Period Value="16000"/>
+	<Node Id="46" Name="T46" BCET="1500" WCET="1500" Deadline="8000" CpuId="2"  CIL="1">
+      <Period Value="8000"/>
     </Node>
+	
+	<Node Id="47" Name="T47" BCET="2000" WCET="2000" Deadline="12000" CpuId="0"  CIL="1">
+      <Period Value="12000"/>
+    </Node>
+	<Node Id="48" Name="T48" BCET="1800" WCET="1800" Deadline="12000" CpuId="0"  CIL="1">
+      <Period Value="12000"/>
+    </Node>
+	<Node Id="49" Name="T49" BCET="1400" WCET="1400" Deadline="12000" CpuId="0"  CIL="1">
+      <Period Value="12000"/>
+    </Node>
+	<Node Id="50" Name="T50" BCET="1500" WCET="1500" Deadline="12000" CpuId="0"  CIL="1">
+      <Period Value="12000"/>
+    </Node>
+	
 
 
 
 
-    <Application Name="EngineMonitor" Inorder="false" CA ="false">
+    <Application Name="DCMOTOR1" Inorder="true" CA ="true">
       <Runnable Name="T1"/>
       <Runnable Name="T2"/>
       <Runnable Name="T3"/>
     </Application>
 	
-	<Application Name="Multimedia" Inorder="false" CA ="false">
+	<Application Name="DCMOTOR2" Inorder="true" CA ="true">
       <Runnable Name="T4"/>
       <Runnable Name="T5"/>
       <Runnable Name="T6"/>
-	    <Runnable Name="T7"/>
-	    <Runnable Name="T8"/>
     </Application>
 	
-	<Application Name="SignReader" Inorder="false" CA ="false">
+	 <Application Name="DCMOTOR3" Inorder="true" CA ="true">
+      <Runnable Name="T7"/>
+      <Runnable Name="T8"/>
       <Runnable Name="T9"/>
-      <Runnable Name="T10"/>
-	    <Runnable Name="T11"/>
-	    <Runnable Name="T12"/>
-	    <Runnable Name="T13"/>
-	    <Runnable Name="T14"/>
     </Application>
 	
-	<Application Name="RadarCruise" Inorder="true" CA ="true">
+	<Application Name="DCMOTOR4" Inorder="true" CA ="true">
+      <Runnable Name="T10"/>
+      <Runnable Name="T11"/>
+	  <Runnable Name="T12"/>
+    </Application>
+	
+	<Application Name="DCMOTOR5" Inorder="true" CA ="true">
+      <Runnable Name="T13"/>
+      <Runnable Name="T14"/>
       <Runnable Name="T15"/>
+    </Application>
+	
+	<Application Name="App6" Inorder="false" CA ="false">
       <Runnable Name="T16"/>
       <Runnable Name="T17"/>
-	    <Runnable Name="T18"/>
+    </Application>
+	
+	<Application Name="App7" Inorder="false" CA ="false">
+      <Runnable Name="T18"/>
       <Runnable Name="T19"/>
       <Runnable Name="T20"/>
-	    <Runnable Name="T21"/>
+    </Application>
+	
+	<Application Name="App8" Inorder="false" CA ="false">
+      <Runnable Name="T21"/>
+	  </Application>
+	  
+	<Application Name="App9" Inorder="false" CA ="false">
+      <Runnable Name="T22"/>
+      <Runnable Name="T23"/>
+      <Runnable Name="T24"/>
+	  <Runnable Name="T25"/>
+	  </Application>
+	  
+	<Application Name="App10" Inorder="false" CA ="false">
+      <Runnable Name="T26"/>
+      <Runnable Name="T27"/>
+      <Runnable Name="T28"/>
+	  </Application>
+	  
+	<Application Name="App11" Inorder="false" CA ="false">
+      <Runnable Name="T29"/>
+      <Runnable Name="T30"/>
+      <Runnable Name="T31"/>
+	  <Runnable Name="T32"/>
+      <Runnable Name="T33"/>
+      <Runnable Name="T34"/>
+	  <Runnable Name="T35"/>
+	  <Runnable Name="T36"/>
+	  </Application>
+	  
+	<Application Name="App12" Inorder="false" CA ="false">
+      <Runnable Name="T37"/>
+      <Runnable Name="T38"/>
+      <Runnable Name="T39"/>
+	  <Runnable Name="T40"/>
+      <Runnable Name="T41"/>
+	  </Application>
+	  
+	<Application Name="App13" Inorder="false" CA ="false">
+      <Runnable Name="T42"/>
+      <Runnable Name="T43"/>
+	  </Application>
+	  
+	<Application Name="App14" Inorder="false" CA ="false">
+      <Runnable Name="T44"/>
+      <Runnable Name="T45"/>
+      <Runnable Name="T46"/>
+	  </Application>
+	  
+	<Application Name="App15" Inorder="false" CA ="false">
+      <Runnable Name="T47"/>
+      <Runnable Name="T48"/>
+      <Runnable Name="T49"/>
+	  <Runnable Name="T50"/>
 	  </Application>
 
   

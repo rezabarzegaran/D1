@@ -14,7 +14,7 @@ namespace Planner.Objects
     /// </summary>
     public class FitnessScore
     {
-        
+
         /// <summary>
         /// Returns a new instance of the FitnessScore class.
         /// </summary>
@@ -25,34 +25,74 @@ namespace Planner.Objects
         /// <param name="chains">List of E2E values. </param>
         /// <param name="deadlines">List of deadline values.</param>
         /// <param name="jitters">List of jitter values.</param>
-        public FitnessScore(double w1, double w2, double w3, double w4, double w5, double w6, List<TaskChain> chains, List<Deadline> deadlines, List<JitterBase> jitters, List<Order> orders, List<CoC> controlcost, List<CoreMap> coremaps, MLApp.MLApp matlab)
+        public FitnessScore(double w1, double w2, double w3, double w4, double w5, double w6, List<Application> apps, List<Deadline> deadlines, List<JitterBase> jitters, List<CoreSchedule> schedules, MLApp.MLApp matlab)
         {
             Matlab = matlab;
             Dictionary<int, int> violationsCPUMap = new Dictionary<int, int>();
             double totalE2E = 0;
+            int totalOrder = 0;
             double validScore = 0;
             double e2EPenalty = 0;
+            double orderPenalty = 0;
             double deadlinePenalty = 0;
             double jitterPenalty = 0;
-            double orderPenalty = 0;
+
             double controlPenalty = 0;
             double controlDevPenalty = 0;
-            double separationPenalty = 0;
+            double partitionPenalty = 0;
 
-            // Calculate valid score and penalites
-            foreach (TaskChain chain in chains)
+            int totale2es = 0;
+            int totaljitters = 0;
+            int totaldeadlines = 0;
+
+
+            List<double> CocVal = new List<double>();
+            int CAs = 0;
+
+            foreach (Application app in apps)
             {
-                validScore += Fitness(chain);
-                totalE2E += chain.Threshold * chain.Priority;
-                e2EPenalty += Penalty(chain);
-                if (chain.Failed) E2EViolations++;
+                validScore += Fitness(app);
+                totalE2E += app.Threshold;
+                e2EPenalty += Penalty(app);
+                E2EViolations += app.E2EViolations;
+                if(app.InOrder) OrderViolations += app.OrderViolation;
+                if (app.InOrder) orderPenalty += app.OrderViolation;
+
+                if (app.CA)
+                {
+                    CAs++;
+                    double temp = CoCPenalty(app);
+                    CocVal.Add(temp);
+                    controlPenalty += temp;
+                }
+
+
+
+                totalOrder += (app._Instances.Count * app.Tasks.Count);
+                totale2es += app._Instances.Count;
+
+
+
+
             }
             validScore = (totalE2E > 0.0) ? validScore / totalE2E : 0.0;
-            if (chains.Count > 0) e2EPenalty /= chains.Count;
+            if (apps.Count > 0)
+            {
+                e2EPenalty /= apps.Count;
+                orderPenalty /= totalOrder;
+            }
+            if (CAs > 0) controlPenalty /= CAs;
+
+            controlDevPenalty = 0.01 * Penalty(controlPenalty, CocVal);
+
+            PossibleOrderViolation = totalOrder;
+            PossibleE2EViolation = totale2es;
 
             // Calculate deadlinepenalty & determine the cpu's which own the failed tasks
             foreach (Deadline deadline in deadlines)
             {
+                totaldeadlines += deadline.Map.Count;
+
                 if (deadline.Failed)
                 {
                     deadlinePenalty += Penalty(deadline);
@@ -61,15 +101,19 @@ namespace Planner.Objects
                         violationsCPUMap.Add(deadline.OwnerCpu, 0);
                     }
                     violationsCPUMap[deadline.OwnerCpu]++;
-                    DeadlineViolations++;
+                    DeadlineViolations += deadline.TotalViolation;
                 }
             }
             if (deadlines.Count > 0) deadlinePenalty /= deadlines.Count;
-           
+            PossibleDeadlineViolation = totaldeadlines;
+
+
             // Calculate jitterpenalty & determine the cpu's which own the failed tasks
-            
+
             foreach (JitterBase jitter in jitters)
             {
+                totaljitters += jitter.EndJitters.Count;
+
                 if (jitter.Failed)
                 {
                     jitterPenalty += Penalty(jitter);
@@ -83,62 +127,47 @@ namespace Planner.Objects
             }
             if (jitters.Count > 0) jitterPenalty /= jitters.Count;
             WorstCpu = (violationsCPUMap.Count > 0) ? violationsCPUMap.Aggregate((x, y) => x.Value > y.Value ? x : y).Key : -1;
+            PossibleJitterViolation = totaljitters;
 
-            foreach (Order app in orders)
+
+            foreach (CoreSchedule schedule in schedules)
             {
-                    orderPenalty += Penalty(app);
-                    if(app.Failed)
-                    {
-                        OrderViolations++;
-                    }
-            }
-            List<double> CocVal = new List<double>();
-            foreach (CoC controlapp in controlcost)
-            {
-                double temp = Penalty(controlapp);
-                CocVal.Add(temp);
-                controlPenalty += temp;
-            }
-            if (controlcost.Count > 0) controlPenalty /= controlcost.Count;
-
-            controlDevPenalty = 0.01 * Penalty(controlPenalty, CocVal);
-
-
-
-
-            SeparationViolations = 0;
-            foreach (var map in coremaps)
-            {
-                separationPenalty += Penalty(map);
-                if (map.Failed)
+                schedule.Initiate();
+                if (schedule.Failed)
                 {
-                    SeparationViolations++;
+                    partitionPenalty += (schedule.PartitionCost);
+                    PartitionViolations += schedule.PartitionViolations;
                 }
                 
+
             }
-            if (coremaps.Count > 0) separationPenalty /= coremaps.Count;
+
+            if (schedules.Count > 0)
+            {
+                partitionPenalty /= schedules.Count;
+            }
 
             ValidSolution = (E2EViolations == 0) && (DeadlineViolations == 0) && (OrderViolations == 0) &&
-                            (JitterViolations == 0) && (SeparationViolations == 0);
+                            (JitterViolations == 0) && (PartitionViolations == 0);
 
             // Calculate static and weighted penalties.
-            double staticPenalty = Math.Ceiling(Math.Min(1.0, e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty + separationPenalty + controlDevPenalty)) * w1;
+            double staticPenalty = Math.Ceiling(Math.Min(1.0, e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty + partitionPenalty + controlDevPenalty)) * w1;
             E2EPenalty = e2EPenalty * w2;
             DeadlinePenalty = deadlinePenalty * w3;
             JitterPenalty = jitterPenalty * w4;
             OrderPenalty = orderPenalty * w1;
             ControlPenalty = controlPenalty * w5;
             ControlDevPenalty = controlDevPenalty * w5;
-            SeparationPenalty = separationPenalty * w6;
+            PartitionPenalty = partitionPenalty * w6;
             // Calculate score and combined penalty 
             MaxValidScore = w1;
             ValidScore = validScore * w1;
 
-            TotalPenalty = E2EPenalty + DeadlinePenalty + JitterPenalty + OrderPenalty + ControlPenalty + SeparationPenalty + ControlDevPenalty + (ViolationCount * 10000);
+            TotalPenalty = E2EPenalty + DeadlinePenalty + JitterPenalty + OrderPenalty + ControlPenalty + PartitionPenalty + ControlDevPenalty + (ViolationCount * 10000);
             IsValid = ValidSolution;
             //Score = Math.Max(TotalPenalty, ValidScore);
             Score = TotalPenalty;
-            UnweightedScore = Math.Max(staticPenalty + (e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty + separationPenalty + controlDevPenalty) * w1, ValidScore);
+            UnweightedScore = Math.Max(staticPenalty + (e2EPenalty + deadlinePenalty + jitterPenalty + orderPenalty + controlPenalty + partitionPenalty + controlDevPenalty) * w1, ValidScore);
         }
 
         public double MaxValidScore { get; }
@@ -149,18 +178,22 @@ namespace Planner.Objects
         public double OrderPenalty { get; }
         public double ControlPenalty { get; }
         public double ControlDevPenalty { get; }
-        public double SeparationPenalty { get; }
+        public double PartitionPenalty { get; }
         public double TotalPenalty { get; }
         public double Score { get; set; }
         public bool IsValid { get; }
         public bool ValidSolution { get; }
         public int WorstCpu { get; }
+        public int PossibleOrderViolation { get; }
+        public int PossibleJitterViolation { get; }
+        public int PossibleE2EViolation { get; }
+        public int PossibleDeadlineViolation { get; }
         public int E2EViolations { get; private set; }
         public int OrderViolations { get; private set; }
         public int DeadlineViolations { get; private set; }
         public int JitterViolations { get; private set; }
-        public int SeparationViolations { get; private set; }
-        public int ViolationCount => E2EViolations + DeadlineViolations + JitterViolations + OrderViolations + SeparationViolations;
+        public int PartitionViolations { get; private set; }
+        public int ViolationCount => E2EViolations + DeadlineViolations + JitterViolations + OrderViolations + PartitionViolations;
         public double UnweightedScore { get; private set; }
         public MLApp.MLApp Matlab = null;
 
@@ -186,9 +219,9 @@ namespace Planner.Objects
 
             return 0;
         }
-        private double Penalty(TaskChain chain)
+        private double Penalty(Application chain)
         {
-            if (chain.Failed)
+            if (chain.FailedE2E)
             {
                 int limit = chain.Threshold;
                 int violation = Math.Min(limit, chain.E2E - chain.Threshold);
@@ -197,17 +230,7 @@ namespace Planner.Objects
 
             return 0;
         }
-        private double Penalty(Order order)
-        {
-            //order.CheckViolation();
-            if (order.CheckViolation() != 0)
-            {
-                return (double) (50 + order.Violations * 2);
-            }
-
-            return 0;
-        }
-        private double Penalty(CoC app)
+        private double CoCPenalty(Application app)
         {
             double chainperiod = app.Period;
             int count = 0;
@@ -259,26 +282,9 @@ namespace Planner.Objects
             double retVal = Math.Sqrt(_sum / cocVal.Count);
             return retVal;
         }
-
-        private double Penalty(CoreMap coremap)
+        private double Fitness(Application app)
         {
-            coremap.CreateMap();
-            double Nslices = coremap.getNSlices();
-            int NFails = coremap.getNFailed();
-            double totalLength = coremap.getDuration();
-            
-            if (totalLength > 0)
-            {
-                //double pen = (Nslices / totalLength) + (NFails / Nslices);
-                double pen =  (NFails / Nslices);
-                return pen;
-            }
-
-            return 0;
-        }
-        private double Fitness(TaskChain chain)
-        {
-            return Math.Min(chain.E2E, chain.Threshold) * chain.Priority;
+            return Math.Min(app.E2E, app.Threshold);
         }
     }
 }

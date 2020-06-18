@@ -6,12 +6,11 @@ using System.Threading.Tasks;
 
 namespace Planner.Objects
 {
-    public class Application
+    public class App
     {
 
-        public Application(int id, string name, bool ca, bool inorder, IEnumerable<Job> taskchain)
+        public App(string name, bool ca, bool inorder, IEnumerable<Job> taskchain)
         {
-            Id = id;
             Name = name;
             CA = ca;
             InOrder = inorder;
@@ -21,9 +20,8 @@ namespace Planner.Objects
                 Tasks.Add(new ApplicationTasks(task.Name));
             }
         }
-        public Application(int id, string name, bool ca, bool inorder, IEnumerable<ApplicationTasks> taskchain)
+        public App(string name, bool ca, bool inorder, IEnumerable<ApplicationTasks> taskchain)
         {
-            Id = id;
             Name = name;
             CA = ca;
             InOrder = inorder;
@@ -34,19 +32,18 @@ namespace Planner.Objects
             }
         }
 
-        public int Id { get; }
         public string Name { get; }
         public bool CA { get; }
         public bool InOrder { get; }
         public List<ApplicationTasks> Tasks { get; }
 
-        public Application Clone()
+        public App Clone()
         {
-            return new Application(Id, Name, CA, InOrder, Tasks);
+            return new App(Name, CA, InOrder, Tasks);
         }
-        public Application DeepClone()
+        public App DeepClone()
         {
-            return new Application(Id, Name, CA, InOrder, Tasks);
+            return new App(Name, CA, InOrder, Tasks);
         }
 
         public class ApplicationTasks

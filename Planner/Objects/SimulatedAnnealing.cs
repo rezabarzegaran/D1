@@ -99,10 +99,10 @@ namespace Planner.Objects
                         SwapTasks(newCandidate);
                         break;
                     case int n when n >= 100 && n < 133:
-                        AdjustPeriod(newCandidate);
-                    break;
-                    case int n when n >= 133 && n < 166:  
                         AdjustEarliestActivation(newCandidate);
+                    break;
+                    case int n when n >= 133 && n < 166:
+                        AdjustPeriod(newCandidate);
                     break;
 
                 }

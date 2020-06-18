@@ -13,7 +13,18 @@ namespace Planner.Objects.Models
     /// </summary>
     public class DataLoader
     {
+        private static bool enableExecSlides = true;
+        private static bool enableIdleSlides = false;
+        private static bool enablePartitionSlides = true;
+        
+        public enum SVGTypes
+        {
+            exec,
+            idle,
+            tasks
+        }
 
+        private static SVGTypes svgOut = SVGTypes.exec;
         public static T Load<T>(string file)
         {
             object obj = null;
@@ -40,63 +51,44 @@ namespace Planner.Objects.Models
             Configuration configuration = Load<Configuration>(path[1]);
             return (workload, configuration);
         }
-        public static void Unload(string _resultfile, string _taskmapfile, string _vmmapfile, string _coresmapfile, List<Simulation> s)
+        public static void Unload(string _resultfile, List<Simulation> s)
         {
+            string TaskFolder = _resultfile + @"\Tasks";
+            string CoreFolder = _resultfile + @"\Cores";
             System.IO.Directory.CreateDirectory(_resultfile);
-            System.IO.Directory.CreateDirectory(_taskmapfile);
-            System.IO.Directory.CreateDirectory(_vmmapfile);
-            System.IO.Directory.CreateDirectory(_coresmapfile);
+            System.IO.Directory.CreateDirectory(TaskFolder);
+            System.IO.Directory.CreateDirectory(CoreFolder);
             string file = _resultfile + @"\Results.xml";
-            Evaluation _evaluation = new Evaluation();
 
+            GenerateReport(file, s);
+            GenerateCoreMap(CoreFolder, s);
+            //GenerateTaskMap(CoreFolder, s);
+            string filenameFirst = _resultfile + @"\table_first.svg";
+            string filenameLast = _resultfile + @"\table_last.svg";
+            //GenerateSVG(s.First(), filenameFirst, svgOut);
+            //GenerateSVG(s.Last(), filenameLast, svgOut);
+        }
+
+        private static void GenerateReport(string _resultfile, List<Simulation> s)
+        {
+            Evaluation _evaluation = new Evaluation();
 
             int count = 0;
             foreach (Simulation simulation in s)
             {
-                Evaluation.Solution temp = new Evaluation.Solution();
-                temp.Id = count;
-                SetVMS(temp, simulation.Environment);
-                SetCores(temp, simulation.Environment);
-                SetTasks(temp, simulation.Tasks.ToList());
-                SetScores(temp, simulation.Fitness);
-                SetViolation(temp, simulation.Fitness);
-                SetControlScore(temp, simulation.Evaluator);
-                SetEvaluationScore(temp, simulation.Evaluator);
-
-                SetTaskMap(_taskmapfile, count, simulation);
-                SetTaskTrace(_taskmapfile, count, simulation);
-                SetCoreTrace(_coresmapfile, count, simulation);
-
-                SetVmMap(_vmmapfile, count, simulation);
-
-                count++;
-                _evaluation.Solutions.Add(temp);
-
-            }
-
-
-            Save(file, _evaluation);
-        }
-
-        public static void SetVMS(Evaluation.Solution temp, Environment env)
-        {
-            foreach (var cpu in env.Cpus)
-            {
-                foreach (var core in cpu.Cores)
+                if (true)
                 {
-                    Evaluation.Solution.VM virtualmachine = new Evaluation.Solution.VM();
-                    virtualmachine.Name = "Dyn_" + cpu.Id.ToString() + "_" + core.Id.ToString();
-                    virtualmachine.CPUID = cpu.Id;
-                    virtualmachine.CoreID = core.Id;
-                    virtualmachine.Slices = 1;
-                    virtualmachine.Violation = 0;
-                    virtualmachine.Fixed = true;
-                    temp.vms.Add(virtualmachine);
+                    Evaluation.Solution temp = new Evaluation.Solution();
+                    temp.Id = count;
+                    temp.Hyperperiod = simulation.Environment.Hyperperiod;
+                    SetCores(temp, simulation.Environment);
+                    SetScores(temp, simulation.Fitness, simulation.Evaluator);
 
-
+                    count++;
+                    _evaluation.Solutions.Add(temp);
                 }
             }
-
+            Save(_resultfile, _evaluation);
         }
 
         public static void SetCores(Evaluation.Solution temp, Environment env)
@@ -109,274 +101,232 @@ namespace Planner.Objects.Models
                     pe.CPUID = cpu.Id;
                     pe.CoreID = core.Id;
                     pe.Aviliability = core.Availability;
-                    pe.Hyperperiod = core.Hyperperiod;
+                    
 
+                    List<int> SILs = new List<int>();
                     foreach (var job in core.Tasks)
                     {
                         pe.Task_Names.Add(job.Name);
+                        if (!SILs.Contains(job.Cil))
+                        {
+                            SILs.Add(job.Cil);
+                        }
+     
                     }
-                    pe.VM_Names.Add("Dyn_"+cpu.Id.ToString()+"_"+core.Id.ToString());
-                    //foreach (var vm in core.VMs)
-                    //{
-                    //    pe.VM_Names.Add(vm.Name);
-                    //}
 
-                    temp.cores.Add(pe);
+                    pe.Total_Partitions = SILs.Count;
+                    temp.Cores.Add(pe);
 
                 }
             }
         }
 
-        public static void SetTasks(Evaluation.Solution temp, List<Job> alljobs)
-        {
-            foreach (var job in alljobs)
-            {
-                Evaluation.Solution.SolutionTask task = new Evaluation.Solution.SolutionTask();
-
-                task.Name = job.Name;
-                task.CPUID = job.CpuId;
-                task.CoreID = job.CoreId;
-                task.Period = job.Period;
-                task.WCET = job.ExecutionTime;
-                task.Cost = job.Cost;
-
-                temp.Tasks.Add(task);
-            }
-        }
-
-        public static void SetScores(Evaluation.Solution temp, FitnessScore fitness)
+        public static void SetScores(Evaluation.Solution temp, FitnessScore fitness, Evaluator ev)
         {
             temp.Scores.Total = fitness.Score;
-            temp.Scores.E2E = fitness.E2EPenalty;
-            temp.Scores.Deadline = fitness.DeadlinePenalty;
-            temp.Scores.Control = fitness.ControlPenalty;
+            temp.Scores.Validity = fitness.ValidSolution;
+            temp.Scores.ValidScore = fitness.MaxValidScore;
+
+            temp.Scores.E2EScore = fitness.E2EPenalty;
+            temp.Scores.E2EViolation = fitness.E2EViolations;
+            temp.Scores.E2EPossibleViolation = fitness.PossibleE2EViolation;
+
+            temp.Scores.DeadlineScore = fitness.DeadlinePenalty;
+            temp.Scores.DeadlineViolation = fitness.DeadlineViolations;
+            temp.Scores.DeadlinePossibleViolation = fitness.PossibleDeadlineViolation;
+
+            temp.Scores.JitterScore = fitness.JitterPenalty;
+            temp.Scores.JitterViolation = fitness.JitterViolations;
+            temp.Scores.JitterPossibleViolation = fitness.PossibleJitterViolation;
+
+            temp.Scores.OrderScore = fitness.OrderPenalty;
+            temp.Scores.OrderViolation = fitness.OrderViolations;
+            temp.Scores.OrderPossibleViolation = fitness.PossibleOrderViolation;
+            temp.Scores.QOCScore = fitness.ControlPenalty;
             temp.Scores.DevControl = fitness.ControlDevPenalty;
-            temp.Scores.Instance = -1;
-            temp.Scores.Jitter = fitness.JitterPenalty;
-            temp.Scores.Order = fitness.OrderPenalty;
-            temp.Scores.VM = -1;
-            temp.Scores.Separation = fitness.SeparationPenalty;
-            temp.Scores.valid = fitness.IsValid;
 
+            temp.Scores.PartitionScore = fitness.PartitionPenalty;
+            temp.Scores.PartitionViolation = fitness.PartitionViolations;
 
-        }
-
-        public static void SetControlScore(Evaluation.Solution temp, Evaluator eval)
-        {
-            foreach (var qoc in eval.ControlCost)
+            foreach (var qoc in ev.Apps)
             {
-                temp.Scores.CoC.Add(qoc.Cost);
+                if (qoc.CA)
+                {
+                    temp.Scores.CoC.Add(qoc.Cost);
+                }
+                
             }
-
-
-        }
-
-        public static void SetEvaluationScore(Evaluation.Solution temp, Evaluator eval)
-        {
-            foreach (var chain in eval.Chains)
+            foreach (var chain in ev.Apps)
             {
                 temp.Scores.Chains.Add(chain.E2E);
             }
 
-            foreach (var deadline in eval.Deadlines)
+            foreach (var deadline in ev.Deadlines)
             {
                 temp.Scores.Deadlines.Add(deadline.MaxDistance);
             }
 
 
-        }
-        public static void SetViolation(Evaluation.Solution temp, FitnessScore fitness)
-        {
-            temp.Violations.Total = fitness.ViolationCount;
-            temp.Violations.E2E = fitness.E2EViolations;
-            temp.Violations.Deadline = fitness.DeadlineViolations;
-            temp.Violations.Jitter = fitness.JitterViolations;
-            temp.Violations.Order = fitness.OrderViolations;
-            temp.Violations.Instance = -1;
-            temp.Violations.Separation = fitness.SeparationViolations;
+            //temp.Scores.ExtensibilityScore = fitness.ExtensibilityPenalty;
+
+
+
+
 
 
         }
 
-        public static void SetTaskMap(string _taskmapfile, int count, Simulation simulation)
-        {
-            string taskmapfile = _taskmapfile + @"\Sulotion_" + count.ToString() + ".xml";
-            Map _taskmap = new Map();
 
-            foreach (var taskmap in simulation.Evaluator.TaskMaps)
+
+        public static void GenerateSVG(Simulation s, string filename, SVGTypes ouType)
+        {
+            SVGDump svg = new SVGDump();
+            svg.SetScope(s.Environment.Hyperperiod);
+            foreach (var cpu in s.Environment.Cpus)
             {
-
-                Map.Item _item = new Map.Item();
-                _item.OwnerName = taskmap.OwnerName;
-                _item.CpuId = taskmap.OwnerCpu;
-                _item.CoreId = taskmap.OwnerCore;
-                _item.Duration = -1;
-                _item.Space = -1;
-                int numevents = Math.Min(taskmap.Starts.Count,taskmap.Ends.Count);
-                for (int i = 0; i < numevents; i++)
-                {
-                    Map.Item.Event t = new Map.Item.Event();
-                    t.Start = taskmap.Starts[i];
-                    t.End = taskmap.Ends[i];
-                    _item.events.Add(t);
-                }
-
-
-                _taskmap.items.Add(_item);
+                svg.AddCPU(cpu.Id, cpu.CoreCount);
             }
-            Save(taskmapfile, _taskmap);
-        }
-        public static void SetTaskTrace(string _tracefolder, int count, Simulation simulation)
-        {
-            string currentPath = _tracefolder + @"\Sulotion_" + count.ToString();
-            System.IO.Directory.CreateDirectory(currentPath);            
 
-            foreach (var job in simulation.Tasks)
+            foreach (var schedule in s.Evaluator.Schedules)
             {
-                string filename = currentPath + @"\Job_" + job.Name + "_trace.xml";
-                JobTrace _tasktrace = new JobTrace();
-                JobTrace.Item _item = new JobTrace.Item();
-                _item.OwnerName = job.Name;
-                _item.CoreId = job.CoreId;
-                _item.CpuId = job.CpuId;
-                foreach (var execution in job.ExecutionTrace)
+                switch (ouType)
                 {
-                    JobTrace.Item.Event t = new JobTrace.Item.Event();
-                    t.Cycle = execution.Cycle;
-                    t.RemainingET = execution.RemainingET;
-                    t.StepSize = execution.ExecutionSize;
-                    _item.events.Add(t);
-
-                }
-
-                _tasktrace.items.Add(_item);
-                Save(filename, _tasktrace);
-
-            }
-        }
-        public static void SetCoreTrace(string _tracefolder, int count, Simulation simulation)
-        {
-            string currentPath = _tracefolder + @"\Sulotion_" + count.ToString();
-            System.IO.Directory.CreateDirectory(currentPath);
-
-            foreach (var CPU in simulation.Environment.Cpus)
-            {
-                foreach (var core in CPU.Cores)
-                {
-                    CoreTrace _coretrace = new CoreTrace();
-                    List<CoreTrace.Item.Event> _events = new List<CoreTrace.Item.Event>();
-                    string filename = currentPath + @"\Cpu_" + CPU.Id.ToString() + "_Core_" + core.Id.ToString() + "_trace.xml";
-
-                    CoreTrace.Item _item = new CoreTrace.Item();
-                    _item.CpuId = CPU.Id;
-                    _item.CoreId = core.Id;
-                    List<Job> Jobs = simulation.Tasks.ToList()
-                        .FindAll(x => ((x.CoreId == core.Id) && (x.CpuId == CPU.Id)));
-                    foreach (var job in Jobs)
-                    {
-
-                        foreach (var execution in job.ExecutionTrace)
+                    case SVGTypes.tasks:
+                        foreach (var slice in schedule.TaskSlices)
                         {
-                            CoreTrace.Item.Event t = new CoreTrace.Item.Event();
-                            t.Cycle = execution.Cycle;
-                            t.RemainingET = execution.RemainingET;
-                            t.StepSize = execution.ExecutionSize;
-                            t.OwnerName = job.Name;
-                            _events.Add(t);
-
+                            svg.AddTask(slice.Start, slice.Duration, schedule.CpuId, schedule.CoreId, Convert.ToInt32(slice.Owner));
                         }
-
-                       
-
-
-
-                    }
-                    _item.events = _events.OrderBy(x => x.Cycle).ToList();
-
-                    _coretrace.items.Add(_item);
-                    Save(filename, _coretrace);
-
-
-
-
+                        break;
+                    case SVGTypes.exec:
+                        foreach (var slice in schedule.ExecSlices)
+                        {
+                            svg.AddTask(slice.Start, slice.Duration, schedule.CpuId, schedule.CoreId, 1);
+                        }
+                        break;
+                    default:
+                        foreach (var slice in schedule.ExecSlices)
+                        {
+                            svg.AddTask(slice.Start, slice.Duration, schedule.CpuId, schedule.CoreId, 1);
+                        }
+                        break;
                 }
 
             }
+
+            svg.Generate(filename);
+
+
         }
 
-        public static void SetVmMap(string _vmmapfile, int count, Simulation simulation)
+        private static void GenerateCoreMap(string folder, List<Simulation> s)
         {
-            Map _vmmap = new Map();
-            string vmmapfile = _vmmapfile + @"\Sulotion_" + count.ToString() + ".xml";
+            string Execfoldername = folder + @"\ExecutionSlices";
+            System.IO.Directory.CreateDirectory(Execfoldername);
 
-            foreach (var cpu in simulation.Environment.Cpus)
+            string Idlefoldername = folder + @"\IdleSlices";
+            System.IO.Directory.CreateDirectory(Idlefoldername);
+
+            string Partitionfoldername = folder + @"\PartitionSlices";
+            System.IO.Directory.CreateDirectory(Partitionfoldername);
+
+            int count = 0;
+            foreach (Simulation simulation in s)
             {
-                foreach (var core in cpu.Cores)
+                if (true)
                 {
-                    Map.Item _item = new Map.Item();
-                    List<Slot> Slots = new List<Slot>();
-                    _item.OwnerName = "Dyn_" + cpu.Id.ToString() + "_" + core.Id.ToString(); ;
-                    _item.CpuId = cpu.Id;
-                    _item.CoreId = core.Id;
-                    _item.Space = 70;
-                    foreach (var job in core.Tasks)
-                    {
-                        int nextStep = 0;
+                    string Execfilename = Execfoldername + @"\Solution" + count + ".xml";
+                    Map exemaps = new Map();
+                    string Idlefilename = Idlefoldername + @"\Solution" + count + ".xml";
+                    Map idlemap = new Map();
 
-                        for (int i = 0; i < job.ExecutionTrace.Count; i++)
+                    string Partitionfilename = Partitionfoldername + @"\Solution" + count + ".xml";
+                    Map partitionmap = new Map();
+
+
+                    foreach (var schedule in simulation.Evaluator.Schedules)
+                    {
+                        Map.CoreMap exectemp = new Map.CoreMap();
+                        Map.CoreMap idletemp = new Map.CoreMap();
+                        Map.CoreMap partitiontemp = new Map.CoreMap();
+                        exectemp.CoreId = schedule.CoreId;
+                        idletemp.CoreId = schedule.CoreId;
+                        partitiontemp.CoreId = schedule.CoreId;
+                        exectemp.CpuId = schedule.CpuId;
+                        idletemp.CpuId = schedule.CpuId;
+                        partitiontemp.CpuId = schedule.CpuId;
+                        idletemp.Duration = schedule._Hyperperiod;
+                        exectemp.Duration = schedule._Hyperperiod;
+                        partitiontemp.Duration = schedule._Hyperperiod;
+                        if (enableExecSlides)
                         {
-                            if (i == nextStep)
+                            foreach (var slice in schedule.ExecSlices)
                             {
-                                Slot temp = new Slot();
-                                temp.start = job.ExecutionTrace[i].Cycle;
-                                nextStep = job.ExecutionTrace.Count;
-                                temp.end = job.ExecutionTrace[(job.ExecutionTrace.Count - 1)].Cycle;
-                                temp.end += job.ExecutionTime - (temp.end - temp.start);
-                                for (int j = i ; j < (job.ExecutionTrace.Count-1); j++)
-                                {
-                                    int dur = Math.Abs(job.ExecutionTrace[j].Cycle - job.ExecutionTrace[j + 1].Cycle);
-                                    if (dur > core.MacroTick)
-                                    {
-                                        temp.end = job.ExecutionTrace[j].Cycle;
-                                        temp.end += job.ExecutionTime - (temp.end - temp.start);
-                                        nextStep = j+1;
-                                        break;
-                                    }
-                                }
-                                Slots.Add(temp);
+                                Map.CoreMap.Event tempevent = new Map.CoreMap.Event();
+                                tempevent.Start = slice.Start;
+                                tempevent.End = slice.End;
+                                tempevent.Duration = slice.Duration;
+                                exectemp.events.Add(tempevent);
+
                             }
+                            exemaps.Cores.Add(exectemp);
+
+                        }
+
+                        if (enablePartitionSlides)
+                        {
+                            foreach (var slice in schedule.PartitionSlices)
+                            {
+                                Map.CoreMap.Event tempevent = new Map.CoreMap.Event();
+                                tempevent.Start = slice.Start;
+                                tempevent.End = slice.End;
+                                tempevent.Duration = slice.Duration;
+                                partitiontemp.events.Add(tempevent);
+
+                            }
+                            partitionmap.Cores.Add(exectemp);
+
+                        }
+
+                        if (enableIdleSlides)
+                        {
+                            foreach (var slice in schedule.IdleSlices)
+                            {
+                                Map.CoreMap.Event tempevent = new Map.CoreMap.Event();
+                                tempevent.Start = slice.Start;
+                                tempevent.End = slice.End;
+                                tempevent.Duration = slice.Duration;
+                                idletemp.events.Add(tempevent);
+                            }
+                            idlemap.Cores.Add(idletemp);
+
                         }
 
 
-                    }
-                    //Sort SLots
-                    Slots.Sort((x, y) => x.start.CompareTo(y.start));
 
-                    foreach (var slot in Slots)
+
+                    }
+
+                    count++;
+                    if (enableExecSlides)
                     {
-                        Map.Item.Event t = new Map.Item.Event();
-                        t.Start = slot.start;
-                        t.End = slot.end;
-                        _item.events.Add(t);
+                        Save(Execfilename, exemaps);
                     }
-                    _item.Duration = Slots.LastOrDefault().end;
-                    _vmmap.items.Add(_item);
+
+                    if (enableIdleSlides)
+                    {
+                        Save(Idlefilename, idlemap);
+                    }
+                    if (enablePartitionSlides)
+                    {
+                        Save(Partitionfilename, partitionmap);
+                    }
+
+
+
                 }
-            }
-            Save(vmmapfile, _vmmap);
-        }
 
-        public class Slot
-        {
-            public Slot()
-            {
 
             }
-
-            public int start;
-            public int end;
         }
-
-
     }
 }

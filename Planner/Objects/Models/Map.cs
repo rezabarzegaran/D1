@@ -9,19 +9,16 @@ namespace Planner.Objects.Models
     [Serializable()]
     public class Map
     {
-        public List<Item> items = new List<Item>();
+        public List<CoreMap> Cores = new List<CoreMap>();
 
-        public class Item
+        public class CoreMap
         {
-            public Item()
+            public CoreMap()
             {
 
             }
-
-            public string OwnerName { get; set; }
             public int CoreId { get; set; }
             public int CpuId { get; set; }
-            public int Space { get; set; }
             public long Duration { get; set; }
             public List<Event> events = new List<Event>();
 
@@ -34,7 +31,10 @@ namespace Planner.Objects.Models
 
                 public int Start { get; set; }
                 public int End { get; set; }
+                public int Duration { get; set; }
             }
         }
     }
+
+
 }

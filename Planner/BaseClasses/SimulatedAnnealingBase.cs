@@ -65,13 +65,13 @@ namespace Planner.BaseClasses
 
         protected void AdjustDeadline(Simulation candidate)
         {
-            CoreMap worstCore = candidate.Evaluator.CoreMaps.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
+            Application worstCore = candidate.Evaluator.Apps.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
             if (worstCore != null)
             {
-                int WorstCil = worstCore.getWorstCil();
-                if (WorstCil != -1)
+                var WorstCil = worstCore.Tasks.Randomize(_rng).FirstOrDefault(); ;
+                if (WorstCil != null)
                 {
-                    List<Job> TargetJobs = candidate.Tasks.ToList().FindAll(x => x.Cil == WorstCil).ToList();
+                    List<Job> TargetJobs = candidate.Tasks.ToList().FindAll(x => x.Name == WorstCil.Name).ToList();
                     if (TargetJobs.Count > 0)
                     {
                         Job j = TargetJobs.Randomize(_rng).FirstOrDefault();
@@ -93,7 +93,7 @@ namespace Planner.BaseClasses
         
         protected void AdjustEarliestActivation(Simulation candidate)
         {
-            Order worstOrder = candidate.Evaluator.Orders.Where(x => x.Failed).ToList().FirstOrDefault();
+            Application worstOrder = candidate.Evaluator.Apps.Where(x => x.FailedOrder).ToList().FirstOrDefault();
             if (worstOrder != null)
             {
                 List<Job> Jobs = candidate.Tasks.ToList();
@@ -104,27 +104,11 @@ namespace Planner.BaseClasses
                 }
 
             }
-            else
-            {
-                CoreMap worstCore = candidate.Evaluator.CoreMaps.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
-                if (worstCore != null)
-                {
-                    int WorstCil = worstCore.getWorstCil();
-                    if (WorstCil != -1)
-                    {
-                        List<Job> Jobs = candidate.Tasks.ToList();
-                        Job j = Jobs.Where(x => x.Cil == WorstCil).Randomize(_rng).FirstOrDefault();
-                        j.EarliestActivation = _rng.Next(0, (j.Period / 2));
-                    }
-
-                }
-
-            }
         }
 
         protected void AdjustPeriod(Simulation candidate)
         {
-            CoC worstControl = candidate.Evaluator.ControlCost.OrderByDescending(x => x.Cost).ToList().FirstOrDefault();
+            Application worstControl = candidate.Evaluator.Apps.Where(x => x.CA).OrderByDescending(x => x.Cost).ToList().FirstOrDefault();
             if (worstControl != null)
             {
                 int selectedPeriod = -1;
@@ -153,7 +137,7 @@ namespace Planner.BaseClasses
 
         protected void AdjustOffset(Simulation candidate, int targetCpu = -1)
         {
-            TaskChain worstChain = candidate.Evaluator.Chains.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
+            Application worstChain = candidate.Evaluator.Apps.Where(x => x.Failed).Randomize(_rng).FirstOrDefault();
             if (worstChain != null)
             {
                 string taskName = worstChain.Tasks.Randomize(_rng).Select(x => x.Name).FirstOrDefault();

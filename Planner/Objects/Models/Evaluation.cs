@@ -17,31 +17,9 @@ namespace Planner.Objects.Models
             {
             }
             public int Id { get; set; }
-            public List<VM> vms = new List<VM>();
-            public List<PE> cores = new List<PE>();
-
-            public List<SolutionTask> Tasks = new List<SolutionTask>();
+            public long Hyperperiod { get; set; }
+            public List<PE> Cores = new List<PE>();
             public Score Scores = new Score();
-            public Violation Violations = new Violation();
-
-
-
-
-
-            public class VM
-            {
-                public VM()
-                {
-
-                }
-                public string Name { get; set; }
-                public int CPUID { get; set; }
-                public int CoreID { get; set; }
-                public int Slices { get; set; }
-                public int Violation { get; set; }
-                public bool Fixed { get; set; }
-
-            }
 
             public class PE
             {
@@ -52,24 +30,8 @@ namespace Planner.Objects.Models
                 public int CPUID { get; set; }
                 public int CoreID { get; set; }
                 public double Aviliability { get; set; }
-                public int Hyperperiod { get; set; }
-                public List<string> VM_Names = new List<string>();
+                public int Total_Partitions { get; set; }
                 public List<string> Task_Names = new List<string>();
-            }
-
-            public class SolutionTask
-            {
-                public SolutionTask()
-                {
-
-                }
-                public string Name { get; set; }
-                public int CoreID { get; set; }
-                public int CPUID { get; set; }
-                public int Period { get; set; }
-                public int WCET { get; set; }
-                public double Cost { get; set; }
-
             }
 
             public class Score
@@ -79,34 +41,40 @@ namespace Planner.Objects.Models
 
                 }
                 public double Total { get; set; }
-                public double E2E { get; set; }
-                public double Jitter { get; set; }
-                public double Deadline { get; set; }
-                public double Order { get; set; }
-                public double Control { get; set; }
+                public bool Validity { get; set; }
+                public double ValidScore { get; set; }
+
+                public double E2EScore { get; set; }
+                public int E2EViolation { get; set; }
+                public int E2EPossibleViolation { get; set; }
+
+                public double JitterScore { get; set; }
+                public int JitterViolation { get; set; }
+                public int JitterPossibleViolation { get; set; }
+
+                public double DeadlineScore { get; set; }
+                public int DeadlineViolation { get; set; }
+                public int DeadlinePossibleViolation { get; set; }
+
+                public double OrderScore { get; set; }
+                public int OrderViolation { get; set; }
+                public int OrderPossibleViolation { get; set; }
+
+                public double QOCScore { get; set; }
                 public double DevControl { get; set; }
-                public double Separation { get; set; }
+
+                public double PartitionScore { get; set; }
+                public int PartitionViolation { get; set; }
+
                 public double Instance { get; set; }
-                public double VM { get; set; }
-                public bool valid { get; set; }
+                
                 public List<double> CoC = new List<double>();
                 public List<double> Chains = new List<double>();
                 public List<double> Deadlines = new List<double>();
 
-            }
-            public class Violation
-            {
-                public Violation()
-                {
-
-                }
-                public int Total { get; set; }
-                public int E2E { get; set; }
-                public int Deadline { get; set; }
-                public int Jitter { get; set; }
-                public int Order { get; set; }
-                public int Instance { get; set; }
-                public int Separation { get; set; }
+                public int TotalViolation { get; set; }
+                
+                   
 
             }
 

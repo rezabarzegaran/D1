@@ -30,106 +30,73 @@ namespace Planner.Objects
             _w5 = _w1 * w5;
             _w6 = _w1 * w6;
             eventMap = new Dictionary<string, List<IMeasurement>>();
-            Chains = new List<TaskChain>();
+
             Deadlines = new List<Deadline>();
-            TaskMaps = new List<TaskMap>();
-            AppMaps = new List<AppMap>();
-            CoreMaps = new List<CoreMap>();
             Jitters = new List<JitterBase>();
-            Orders = new List<Order>();
-            ControlCost = new List<CoC>();
+            Apps = new List<Application>();
+            Schedules = new List<CoreSchedule>();
 
         }
-        public Evaluator(List<TaskChain> chains, List<Deadline> deadlines, List<CoC> coc, List<TaskMap> taskmap, List<CoreMap> coremap , List<Order> orders)
+        public Evaluator(double w2, double w3, double w4, double w5, double w6, List<Application> apps, List<Deadline> deadlines, List<JitterBase> jitters, List<CoreSchedule> schedules)
         {
 
-            //eventMap = new Dictionary<string, List<IMeasurement>>();
-            Chains = new List<TaskChain>();
-            foreach (var chain in chains)
+            _w1 = 1_0_000;
+            _w2 = w2;
+            _w3 = w3;
+            _w4 = w4;
+            _w5 = w5;
+            _w6 = w6;
+            eventMap = new Dictionary<string, List<IMeasurement>>();
+            Apps = new List<Application>();
+
+            foreach (var app in apps)
             {
-                TaskChain tc = new TaskChain(chain.Name, chain.Threshold, chain.Priority);
-                tc.E2E = chain.E2E;
-                Chains.Add(tc);
+                Apps.Add(new Application(app));
             }
-            
-            
+
             Deadlines = new List<Deadline>();
-            foreach (var deadline in deadlines)
+            foreach (var d in deadlines)
             {
-                Deadline d = new Deadline(deadline.Period, deadline.OwnerName,deadline.OwnerCpu,deadline.OwnerCore);
-                d.MaxDistance = deadline.MaxDistance;
-                Deadlines.Add(d);
-            }
-
-            TaskMaps = new List<TaskMap>();
-            foreach (var map in taskmap)
-            {
-                TaskMap m = new TaskMap(map.Period,map.OwnerName,map.OwnerCpu,map.OwnerCore, map.Starts, map.Ends);
-                TaskMaps.Add(m);
-
+                Deadlines.Add(new Deadline(d));
             }
 
 
-            //AppMaps = new List<AppMap>();
-            //Jitters = new List<JitterBase>();
-            //Orders = new List<Order>();
 
+            Jitters = new List<JitterBase>();
 
-            ControlCost = new List<CoC>();
-
-            foreach (var ctrl in coc)
+            Schedules = new List<CoreSchedule>();
+            foreach (var s in schedules)
             {
-                CoC tc = new CoC(ctrl.Name);
-                tc.Cost = ctrl.Cost;
-                ControlCost.Add(tc);
-            }
-
-            CoreMaps = new List<CoreMap>();
-            foreach (var map in coremap)
-            {
-                CoreMaps.Add(new CoreMap(map.CpuID,map.CoreID, map.Tasks, map.Events, map.Separation));
-            }
-            Orders = new List<Order>();
-            foreach (var item in orders)
-            {
-                Orders.Add(new Order(item.Name, item.Tasks, item.BadCycle));
+                Schedules.Add(new CoreSchedule(s));
             }
 
         }
 
-        public List<TaskChain> Chains { get; }
+        public List<Application> Apps { get; }
         public List<Deadline> Deadlines { get; }
         public List<JitterBase> Jitters { get; }
-        public List<TaskMap> TaskMaps { get; }
-        public List<AppMap> AppMaps { get; }
-        public List<CoreMap> CoreMaps { get; }
-        public List<Order> Orders { get; }
-        public List<CoC> ControlCost { get; }
+        public List<CoreSchedule> Schedules { get; }
         public double MaxValidScore => _w1;
         public bool Continue { get; private set; }
 
         public FitnessScore GetScore(MLApp.MLApp matlab)
         {
-            return new FitnessScore(_w1, _w2, _w3, _w4,  _w5, _w6, Chains, Deadlines, Jitters, Orders, ControlCost, CoreMaps, matlab);
+            return new FitnessScore(_w1, _w2, _w3, _w4, _w5, _w6, Apps, Deadlines, Jitters, Schedules, matlab);
         }
         public void Reset()
         {
-            Continue = Chains.Count > 0; // Should only be true if we have chains.
+            Continue = Apps.Where(x => x.InOrder).ToList().Count > 0; // Should only be true if we have chains.
             _completedChains = 0;
-            Chains.ForEach(x => x.Reset());
+            Apps.ForEach(x => x.Reset());
             Deadlines.ForEach(x => x.Reset());
-            TaskMaps.ForEach(x => x.Reset());
-            AppMaps.ForEach(x => x.Reset());
             Jitters.ForEach(x => x.Reset());
-            Orders.ForEach(x => x.Reset());
-            ControlCost.ForEach(x => x.Reset());
-            CoreMaps.ForEach(x => x.Reset());
+            Schedules.ForEach(x => x.Reset());
         }
-        public void EvalE2E(string name, IEnumerable<Job> taskchain, int threshold, double priority)
+        public void EvalApplication(string name, IEnumerable<Job> tasks, int threshold, bool inorder, bool ca)
         {
-            TaskChain tc = new TaskChain(name, threshold, priority);
+            Application tc = new Application(name, threshold, inorder, ca);
             HashSet<string> uniqueTaskNames = new HashSet<string>();
-            foreach (Job task in taskchain)
+            foreach (Job task in tasks)
             {
                 tc.AddTask(task);
                 if (!eventMap.ContainsKey(task.Name))
@@ -140,7 +107,7 @@ namespace Planner.Objects
                 uniqueTaskNames.Add(task.Name);
             }
             uniqueTaskNames.ForEach(tName => eventMap[tName].Add(tc));
-            Chains.Add(tc);
+            Apps.Add(tc);
         }
         public void EvalDeadline(Job task)
         {
@@ -152,80 +119,6 @@ namespace Planner.Objects
             Deadlines.Add(deadline);
             eventMap[task.Name].Add(deadline);
         }
-        public void EvalTaskMap(Job task)
-        {
-            TaskMap taskmap = new TaskMap(task);
-            if (!eventMap.ContainsKey(task.Name))
-            {
-                eventMap.Add(task.Name, new List<IMeasurement>());
-            }
-            TaskMaps.Add(taskmap);
-            eventMap[task.Name].Add(taskmap);
-
-        }
-        public void EvalOrder(string name, IEnumerable<Job> tasks)
-        {
-            Order tc = new Order(name);
-            HashSet<string> uniqueTaskNames = new HashSet<string>();
-            foreach (Job task in tasks)
-            {
-                tc.AddTask(task);
-                if (!eventMap.ContainsKey(task.Name))
-                {
-                    eventMap.Add(task.Name, new List<IMeasurement>());
-                }
-
-                uniqueTaskNames.Add(task.Name);
-            }
-            uniqueTaskNames.ForEach(tName => eventMap[tName].Add(tc));
-            Orders.Add(tc);
-        }
-        public void EvalAppMap(string name, IEnumerable<Job> tasks)
-        {
-            AppMap tc = new AppMap(name);
-            HashSet<string> uniqueTaskNames = new HashSet<string>();
-            foreach (Job task in tasks)
-            {
-                tc.AddTask(task);
-                if (!eventMap.ContainsKey(task.Name))
-                {
-                    eventMap.Add(task.Name, new List<IMeasurement>());
-                }
-
-                uniqueTaskNames.Add(task.Name);
-            }
-            uniqueTaskNames.ForEach(tName => eventMap[tName].Add(tc));
-            AppMaps.Add(tc);
-        }
-        public void EvalQoC(string name, IEnumerable<Job> tasks)
-        {
-            CoC tc = new CoC(name);
-            HashSet<string> uniqueTaskNames = new HashSet<string>();
-            foreach (Job task in tasks)
-            {
-                tc.AddTask(task);
-                if (!eventMap.ContainsKey(task.Name))
-                {
-                    eventMap.Add(task.Name, new List<IMeasurement>());
-                }
-
-                uniqueTaskNames.Add(task.Name);
-            }
-            uniqueTaskNames.ForEach(tName => eventMap[tName].Add(tc));
-            ControlCost.Add(tc);
-        }
-
-        public void EvalCoreMap(int cpuid, int coreid, List<Job> jobs)
-        {
-            CoreMap tc = new CoreMap(cpuid, coreid);
-
-            foreach (var job in jobs)
-            {
-                tc.AddTask(job);
-            }
-
-            CoreMaps.Add(tc);
-        }
         public void EvalJitter(Job task)
         {
             RelativeJitter jitter = new RelativeJitter(task);
@@ -235,6 +128,23 @@ namespace Planner.Objects
             }
             Jitters.Add(jitter);
             eventMap[task.Name].Add(jitter);
+        }
+        public void EvalPartitions(int cpuid, int coreid, IEnumerable<Job> tasks)
+        {
+            CoreSchedule tc = new CoreSchedule(cpuid, coreid);
+            HashSet<string> uniqueTaskNames = new HashSet<string>();
+            foreach (Job task in tasks)
+            {
+                tc.AddTask(task);
+                if (!eventMap.ContainsKey(task.Name))
+                {
+                    eventMap.Add(task.Name, new List<IMeasurement>());
+                }
+
+                uniqueTaskNames.Add(task.Name);
+            }
+            uniqueTaskNames.ForEach(tName => eventMap[tName].Add(tc));
+            Schedules.Add(tc);
         }
         public void StartTask(Job job, int cycle)
         {
@@ -250,14 +160,18 @@ namespace Planner.Objects
                 int completedChains = 0;
                 foreach (IMeasurement measurement in eventMap[job.Name])
                 {
-                    if (measurement is TaskChain chain)
+                    if (measurement is Application app)
                     {
-                        bool couldComplete = !chain.Completed;
-                        measurement.EndTask(job, cycle);
-                        if (couldComplete && chain.Completed)
+                        if (app.InOrder)
                         {
-                            completedChains++;
+                            bool couldComplete = !app.Completed;
+                            measurement.EndTask(job, cycle);
+                            if (couldComplete && app.Completed)
+                            {
+                                completedChains++;
+                            }
                         }
+
                     }
                     else
                     {
@@ -265,17 +179,17 @@ namespace Planner.Objects
                     }
                 }
                 // Determine the number of unfinished chains
-                if (completedChains > 0)
+                if (completedChains >= 0)
                 {
                     _completedChains += completedChains;
-                    if (_completedChains == Chains.Count) Continue = false;
+                    if (_completedChains == Apps.Where(x => x.InOrder).ToList().Count) Continue = false;
                 }
             }
         }
 
-        public Evaluator clone()
+        public Evaluator DeepClone()
         {
-            return new Evaluator(Chains, Deadlines, ControlCost, TaskMaps, CoreMaps, Orders);
+            return new Evaluator(_w2, _w3, _w4, _w5, _w6, Apps, Deadlines, Jitters, Schedules);
         }
 
     }

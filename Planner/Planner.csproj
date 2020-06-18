@@ -74,7 +74,7 @@
     <Compile Include="Interfaces\IMeasurement.cs" />
     <Compile Include="Interfaces\IAnnealing.cs" />
     <Compile Include="Interfaces\IMetaHeuristic.cs" />
-    <Compile Include="Objects\Application.cs" />
+    <Compile Include="Objects\App.cs" />
     <Compile Include="Objects\FitnessScore.cs" />
     <Compile Include="Objects\HeuristicFactory.cs" />
     <Compile Include="Objects\Measurement\AppMap.cs" />
@@ -83,7 +83,7 @@
     <Compile Include="Objects\Measurement\Order.cs" />
     <Compile Include="Objects\Measurement\RelativeJitter.cs" />
     <Compile Include="Objects\Measurement\AbsoluteJitter.cs" />
-    <Compile Include="Objects\Measurement\TaskMap.cs" />
+    <Compile Include="Objects\Measurement\CoreSchedule.cs" />
     <Compile Include="Objects\Models\Configuration.cs" />
     <Compile Include="Objects\Core.cs" />
     <Compile Include="Objects\Environment.cs" />
@@ -101,7 +101,7 @@
     <Compile Include="Objects\Simulation.cs" />
     <Compile Include="Objects\SimulatedAnnealing.cs" />
     <Compile Include="Objects\Measurement\Deadline.cs" />
-    <Compile Include="Objects\Measurement\Taskchain.cs" />
+    <Compile Include="Objects\Measurement\Application.cs" />
     <Compile Include="Objects\Evaluator.cs" />
     <Compile Include="Objects\Models\Workload.cs" />
     <Compile Include="Objects\SVGDump.cs" />

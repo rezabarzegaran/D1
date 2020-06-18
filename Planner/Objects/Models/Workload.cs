@@ -18,12 +18,8 @@ namespace Planner.Objects.Models
             [XmlElement("Node")]
             public List<Task> Items { get; set; }
 
-            [XmlElement("Chain")]
-            public List<TaskChain> Chains { get; set; }
-
-
             [XmlElement("Application")]
-            public List<App> Applications { get; set; }
+            public List<Application> Apps { get; set; }
         }
 
         public class Task
@@ -77,21 +73,6 @@ namespace Planner.Objects.Models
             public int Cil { get; set; }
         }
 
-        public class TaskChain
-        {
-            [XmlAttribute("Budget")]
-            public int EndToEndDeadline { get; set; }
-
-            [XmlAttribute("Priority")]
-            public double Priority { get; set; }
-
-            [XmlAttribute("Name")]
-            public string Name { get; set; }
-
-            [XmlElement("Runnable")]
-            public List<Runnable> Runnables { get; set; }
-        }
-
         public class Period
         {
             [XmlAttribute("Value")]
@@ -103,13 +84,17 @@ namespace Planner.Objects.Models
             [XmlAttribute("Name")]
             public string Name { get; set; }
         }
-        public class App
+        public class Application
         {
-            public App()
+            public Application()
             {
                 CA = false;
                 Inorder = false;
+                EndToEndDeadline = -1;
             }
+            [XmlAttribute("E2E")]
+            public int EndToEndDeadline { get; set; }
+
             [XmlAttribute("Name")]
             public string Name { get; set; }
 

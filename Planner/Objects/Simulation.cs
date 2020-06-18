@@ -19,21 +19,20 @@ namespace Planner.Objects
             SwappableTasks = new List<Job>();
             NonSwappableTasks = new List<Job>();
             Evaluator = new Evaluator(w2, w3, w4, w5, w6);
-            Applications = new List<Application>();
             Matlab = new MLApp.MLApp();
             Matlab.Execute("cd " + matlabexecutefilename);
-
+            Applications = new List<App>();
             Dictionary<string, Job> tasks = CreateJobsFromWorkload(workload);
             // Configure constraints.
-            foreach (Workload.TaskChain chain in workload.Work.Chains)
-            {
-                Evaluator.EvalE2E(chain.Name, chain.Runnables.Select(x => tasks[x.Name]), chain.EndToEndDeadline, chain.Priority);
+            foreach (Workload.Application app in workload.Work.Apps)
+            {  
+                Applications.Add(new App(app.Name, app.CA, app.Inorder, app.Runnables.Select(x => tasks[x.Name])));
+                Evaluator.EvalApplication(app.Name, app.Runnables.Select(x => tasks[x.Name]), app.EndToEndDeadline, app.CA, app.Inorder);
             }
             foreach (Job task in tasks.Values)
             {
                 if (task.JitterThreshold != -1) Evaluator.EvalJitter(task);
                 Evaluator.EvalDeadline(task);
-                Evaluator.EvalTaskMap(task);
                 if (task.HasCoreAffinity)
                 {
                     NonSwappableTasks.Add(task);
@@ -43,27 +42,27 @@ namespace Planner.Objects
                     SwappableTasks.Add(task);
                 }
             }
-            int applicationcounter = 0;
-            foreach (Workload.App app in workload.Work.Applications)
-            {
-                Applications.Add(new Application(applicationcounter, app.Name, app.CA, app.Inorder,
-                    app.Runnables.Select(x => tasks[x.Name])));
-                Evaluator.EvalAppMap(app.Name, app.Runnables.Select(x => tasks[x.Name]));
-                if (app.Inorder) Evaluator.EvalOrder(app.Name, app.Runnables.Select(x => tasks[x.Name]));
-                if (app.CA) Evaluator.EvalQoC(app.Name, app.Runnables.Select(x => tasks[x.Name]));
 
-                applicationcounter++;
-            }
-
-            foreach (var CPU in Environment.Cpus)
+            foreach (var cpu in Environment.Cpus)
             {
-                foreach (var core in CPU.Cores)
+                foreach (var core in cpu.Cores)
                 {
-                    Evaluator.EvalCoreMap(CPU.Id, core.Id, Tasks.ToList());
+                    List<Job> coretasks = new List<Job>();
+
+                    foreach (var task in Tasks)
+                    {
+                        if ((task.CoreId == core.Id) && task.CpuId == cpu.Id)
+                        {
+                            coretasks.Add(task);
+                        }
+                    }
+
+
+                    Evaluator.EvalPartitions(cpu.Id, core.Id, Tasks);
                 }
             }
         }
-        public Simulation(Environment environment, List<Job> nonSwappable, List<Job> swappable, Evaluator evaluator, List<Application> applications, MLApp.MLApp matlab)
+        public Simulation(Environment environment, List<Job> nonSwappable, List<Job> swappable, Evaluator evaluator, List<App> applications, MLApp.MLApp matlab)
         {
             Environment = environment;
             NonSwappableTasks = nonSwappable;
@@ -74,7 +73,7 @@ namespace Planner.Objects
             Matlab.Execute("cd " + matlabexecutefilename);
         }
 
-        public Simulation(Environment environment, List<Job> nonSwappable, List<Job> swappable, Evaluator evaluator, List<Application> applications, FitnessScore fitness, MLApp.MLApp matlab)
+        public Simulation(Environment environment, List<Job> nonSwappable, List<Job> swappable, Evaluator evaluator, List<App> applications, FitnessScore fitness, MLApp.MLApp matlab)
         {
             Environment = environment;
             NonSwappableTasks = nonSwappable;
@@ -93,7 +92,7 @@ namespace Planner.Objects
         public Evaluator Evaluator { get; }
         public FitnessScore Fitness { get; private set; }
         public Environment Environment { get; }
-        public List<Application> Applications { get; }
+        public List<App> Applications { get; }
         public MLApp.MLApp Matlab = null;
 
         /// <summary>
@@ -124,7 +123,9 @@ namespace Planner.Objects
                 TaskEvent te = taskEvents.Dequeue();
                 // Continue enqueuing events as longs as we are
                 // within the hyperperiod, or we have unfinished chains
-                if (te.Cycle < hyperperiod || Evaluator.Continue)
+                //if (te.Cycle < hyperperiod || Evaluator.Continue)
+
+                if (te.Cycle < hyperperiod)
                 {
                     te.Trigger(debug);
                     taskEvents.Enqueue(te);
@@ -134,7 +135,7 @@ namespace Planner.Objects
         }
         public Simulation Clone()
         {
-            return new Simulation(Environment.Clone(), CopyJobs(NonSwappableTasks), CopyJobs(SwappableTasks), Evaluator, CopyApps(Applications), Matlab);
+            return new Simulation(Environment.Clone(), CopyJobs(NonSwappableTasks), CopyJobs(SwappableTasks), DeepCopyEvaluator(Evaluator), CopyApps(Applications), Matlab);
         }
 
         public Simulation DeepClone()
@@ -155,7 +156,7 @@ namespace Planner.Objects
             Workload workload = new Workload();
             workload.Work = new Workload.WorkSchedule();
             workload.Work.Items = new List<Workload.Task>();
-            workload.Work.Chains = new List<Workload.TaskChain>();
+            workload.Work.Apps = new List<Workload.Application>();
 
             foreach (Job task in Environment.Cpus.SelectMany(cpu => cpu.Cores.SelectMany(core => core.Tasks)))
             {
@@ -172,22 +173,22 @@ namespace Planner.Objects
                     Deadline = task.Deadline,
                     Periods = task.Periods.Select(x => new Workload.Period { Value = x }).ToList(),
                     Offset = task.Offset,
-                    DeadlineAdjustment = task.DeadlineAdjustment
+                    DeadlineAdjustment = task.DeadlineAdjustment,
+                    Cil = task.Cil
                 });
             }
 
-            foreach (TaskChain chain in this.Evaluator.Chains)
+            foreach (Application app in this.Evaluator.Apps)
             {
-                Workload.TaskChain taskChain = new Workload.TaskChain();
-                taskChain.Name = chain.Name;
-                taskChain.EndToEndDeadline = chain.Threshold;
-                taskChain.Priority = chain.Priority;
-                taskChain.Runnables = new List<Workload.Runnable>();
-                foreach (TaskChain.VirtualTask task in chain.Tasks)
+                Workload.Application taskApp = new Workload.Application();
+                taskApp.Name = app.Name;
+                taskApp.EndToEndDeadline = app.Threshold;
+                taskApp.Runnables = new List<Workload.Runnable>();
+                foreach (Application.VirtualTask task in app.Tasks)
                 {
-                    taskChain.Runnables.Add(new Workload.Runnable() { Name = task.Name });
+                    taskApp.Runnables.Add(new Workload.Runnable() { Name = task.Name });
                 }
-                workload.Work.Chains.Add(taskChain);
+                workload.Work.Apps.Add(taskApp);
             }
             return workload;
         }
@@ -260,22 +261,22 @@ namespace Planner.Objects
         }
         private Evaluator DeepCopyEvaluator(Evaluator evaluator)
         {
-            return evaluator.clone();
+            return evaluator.DeepClone();
         }
 
-        private List<Application> CopyApps(IEnumerable<Application> applist)
+        private List<App> CopyApps(IEnumerable<App> applist)
         {
             return applist.Select(t =>
             {
-                Application j = t.Clone();
+                App j = t.Clone();
                 return j;
             }).ToList();
         }
-        private List<Application> DeepCopyApps(IEnumerable<Application> applist)
+        private List<App> DeepCopyApps(IEnumerable<App> applist)
         {
             return applist.Select(t =>
             {
-                Application j = t.DeepClone();
+                App j = t.DeepClone();
                 return j;
             }).ToList();
         }
@@ -294,43 +295,32 @@ namespace Planner.Objects
                 deadline.SetEnvironment(current.Period, current.CpuId, current.CoreId);
             }
 
-            foreach (TaskMap map in Evaluator.TaskMaps)
+            foreach (var schedule in Evaluator.Schedules)
             {
-                Job current = AllTasks.First(x => x.Name == map.OwnerName);
-                map.SetEnvironment(current.Period, current.CpuId, current.CoreId);
-            }
-
-            foreach (AppMap map in Evaluator.AppMaps)
-            {
-                foreach (var task in map.Tasks)
+                schedule.Tasks.Clear();
+                foreach (var task in AllTasks)
                 {
-                    Job current = AllTasks.First(x => x.Name == task.Name);
-                    map.SetEnvironment(current.Name, current.CpuId, current.CoreId);
+                    if ((task.CoreId == schedule.CoreId) && task.CpuId == schedule.CpuId)
+                    {
+                        schedule.AddTask(task);
+                    }
                 }
-
             }
-
-            foreach (var coreMap in Evaluator.CoreMaps)
-            {
-                coreMap.CalcSeparation();
-            }
-
-
         }
 
         public long SetHyperperiod(long current)
         {
             long Controlhyperperiod = 1;
-            int minperiod = Int32.MaxValue;
-            foreach (Application app in Applications)
+            int maxperiod = Int32.MinValue;
+            foreach (App app in Applications)
             {
                 if (app.CA)
                 {
                     Job foundtask = Tasks.First(x => x.Name == app.Tasks[0].Name);
                     int period = foundtask.Period;
-                    if (minperiod > period)
+                    if (maxperiod < period)
                     {
-                        minperiod = period;
+                        maxperiod = period;
                     }
 
                     //foreach (Application.ApplicationTasks task in app.Tasks)
@@ -348,16 +338,21 @@ namespace Planner.Objects
                 
             }
 
-            int mintimes = Convert.ToInt32((current / minperiod));
-            int coefficient = 1 + 160/mintimes;
+            
+
+            int mintimes = Convert.ToInt32((current / maxperiod));
+            if (mintimes >= 80)
+            {
+                return current;
+            }
+
+           
+            int coefficient = 1 + 80/mintimes;
 
             return coefficient * current;
             //Controlhyperperiod *= 45;
 
             //return Extensions.LeastCommonMultiple(Controlhyperperiod, current);
-
-
-
 
         }
     }
